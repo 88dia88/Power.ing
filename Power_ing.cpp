@@ -6,7 +6,7 @@
 #include <math.h>
 #include <atlImage.h>
 
-#define window_size 1
+#define window_size 0.75
 #define window_size_x window_size * 1000 //1900
 #define window_size_y window_size * 1000
 #define Stage_radius window_size_y * 0.375
@@ -58,12 +58,12 @@ struct Power_Orb
 {
 	double x, y, speed, angle, size;
 	double speedx, speedy;
-	int type;
+	int type, effect;
 };
 struct Power_Reflector
 {
-	double angle, speed, size;
-	int module[5];
+	double angle, position, speed, size;
+	int module[5], age;
 };
 
 double AngleOverflow(double Angle)
@@ -91,14 +91,19 @@ struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflect
 {
 	double Relative = AngleOverflow(Orb.angle - Reflector.angle);
 	
-	/*
-	if (Relative > 0.125 && Relative < 0.5) {Relative -= 0.25;}
-	else {Relative = 0.5 - Relative;}
-	*/
-	
-	Relative = 0.5 - Relative;
+	if (Relative > 0.125 && Relative <= 0.25) Relative += 0.25;
+	else if (Relative < 0.875 && Relative >= 0.75) Relative -= 0.25;
+	else Relative = 0.5 - Relative;
 
 	Orb.angle = AngleOverflow(Relative + Reflector.angle);
+	Orb.x += Orb.speed * cos(M_PI * 2 * Orb.angle);
+	Orb.y += Orb.speed * sin(M_PI * 2 * Orb.angle);
+	Orb = OrbSpeed(Orb);
+	return Orb;
+}
+struct Power_Orb OrbReset(struct Power_Orb Orb)
+{
+	Orb.x = 0, Orb.y = 0, Orb.angle = 0.75, Orb.speed = 5, Orb.size = 50, Orb.type = 0;
 	Orb = OrbSpeed(Orb);
 	return Orb;
 }
@@ -115,7 +120,6 @@ struct Power_Orb ReactorReflect(struct Power_Orb Orb)
 	Orb = OrbSpeed(Orb);
 	return Orb;
 }
-
 struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
 {
 	double Angle;
@@ -136,6 +140,32 @@ struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Refl
 	return Orb;
 }
 
+struct Power_Reflector ReflectorReset(struct Power_Reflector Reflector)
+{
+	Reflector.angle = 0.75, Reflector.position = 0, Reflector.speed = 1, Reflector.size = 0.1, Reflector.age = 0;
+	Reflector.module[0] = 0, Reflector.module[1] = 0, Reflector.module[2] = 0, Reflector.module[3] = 0, Reflector.module[4] = 0;
+	return Reflector;
+}
+struct Power_Reflector AgeDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
+{
+	double Angle;
+	Angle = atan2(-Orb.y, -Orb.x) / M_PI / 2 + 0.5;
+
+	if (Reflector.angle + Reflector.size >= 1)
+	{
+		if (Reflector.angle - Reflector.size < Angle || AngleOverflow(Reflector.angle + Reflector.size) > Angle)
+			Reflector.age += 50;
+	}
+	else if (Reflector.angle - Reflector.size < 0)
+	{
+		if (Reflector.angle + Reflector.size > Angle || AngleOverflow(Reflector.angle - Reflector.size) < Angle)
+			Reflector.age += 50;
+	}
+	else if (Reflector.angle + Reflector.size > Angle && Reflector.angle - Reflector.size < Angle)
+		Reflector.age += 50;
+	return Reflector;
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	srand((int)time(NULL));
@@ -150,7 +180,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	
 	LPPOINT lpPoint = NULL;
 	TCHAR lpOut[100];
-
+	int debugmod = 1;
 
 	static struct Power_Orb orb;
 	static struct Power_Reflector reflector;
@@ -162,9 +192,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	switch (iMsg) {
 	case WM_CREATE:
 
-		orb.x = 0, orb.y = 0, orb.angle = 0.75, orb.speed = 3, orb.size = 50;
-		orb = OrbSpeed(orb);
-		reflector.angle = 0.75, reflector.speed = 2, reflector.size = 0.1;
+		orb = OrbReset(orb);
+		reflector = ReflectorReset(reflector);
 
 		hdc = GetDC(hWnd);
 		GetClientRect(hWnd, &win_rect);
@@ -175,12 +204,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		hBitmap = CreateCompatibleBitmap(hdc, win_rect.right, win_rect.bottom);
 		SelectObject(mem1dc, (HBITMAP)hBitmap);
 		FillRect(mem1dc, &win_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
-		BitStage = (HBITMAP)LoadImage(g_hInst, TEXT("Stage.bmp"), IMAGE_BITMAP, 0, 0,
+		BitStage = (HBITMAP)LoadImage(g_hInst, TEXT("Reactor_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 1000 X 1000
-		BitPanel = (HBITMAP)LoadImage(g_hInst, TEXT("Panel.bmp"), IMAGE_BITMAP, 0, 0,
+		BitPanel = (HBITMAP)LoadImage(g_hInst, TEXT("Reflector_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 270 X 68
-		BitOrb = (HBITMAP)LoadImage(g_hInst, TEXT("Orb.bmp"), IMAGE_BITMAP, 0, 0,
+		BitOrb = (HBITMAP)LoadImage(g_hInst, TEXT("Orb_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+
+		SetTimer(hWnd, 0, 10, NULL);
 
 		ReleaseDC(hWnd, hdc);
 		break;
@@ -189,34 +220,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (wParam == VK_RETURN) {
 			SetTimer(hWnd, 1, 10, NULL);
 		}
-		else if (wParam == VK_LEFT) {
-			reflector.angle -= 0.005 * reflector.speed;
-			reflector.angle = AngleOverflow(reflector.angle);
-		}
-		else if (wParam == VK_RIGHT) {
-			reflector.angle += 0.005 * reflector.speed;
-			reflector.angle = AngleOverflow(reflector.angle);
+		if (reflector.module[3] == 1)
+		{
+			if (wParam == VK_UP) {
+				if (reflector.speed < 2) reflector.speed += 0.5;
+			}
+			else if (wParam == VK_DOWN) {
+				if (reflector.speed > 0) reflector.speed -= 0.5;
+			}
 		}
 		break;
 
 	case WM_TIMER:
 		switch (wParam) {
-		case 1:
-			if (pow(500, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
-				if (pow(316, 2) <= (pow(orb.x, 2) + pow(orb.y, 2)) && pow(375, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
-					orb = ReflectDetect(orb, reflector);
+		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)
+			if (GetAsyncKeyState(VK_RIGHT) & 0x8001) {		//http://www.silverwolf.co.kr/cplusplus/4842
+				
+				if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
+					reflector.angle += 0.0025 * reflector.speed;
+				}
+				else
+				{
+					reflector.angle += 0.005 * reflector.speed;
+				}
+				reflector.angle = AngleOverflow(reflector.angle);
+			}
+			else if (GetAsyncKeyState(VK_LEFT) & 0x8001) {
+				if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
+					reflector.angle -= 0.0025 * reflector.speed;
+				}
+				else
+				{
+					reflector.angle -= 0.005 * reflector.speed;
+				}
+				reflector.angle = AngleOverflow(reflector.angle);
+			}
+			if (reflector.module[3] == 0)
+			{
+				if (GetAsyncKeyState(VK_UP) & 0x8001 && reflector.position < 60 && reflector.age < 25) {
+					if (reflector.position < 50) reflector.position += 5;
+					reflector.position += 10;
+				}
+				else if (GetAsyncKeyState(VK_DOWN) & 0x8001 && reflector.position > -60 && reflector.age < 25) {
+					if (reflector.position > -50) reflector.position -= 5;
+					reflector.position -= 10;
 				}
 			}
-			else{
-				orb.x = 0, orb.y = 0, orb.angle = 0.75;
-				orb = OrbSpeed(orb);
+			if (reflector.position > 0)	reflector.position -= 10;
+			if (reflector.position < 0)	reflector.position += 10;
+			break;
+		case 1:
+			if (pow(500, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
+				if (pow(316 - reflector.position, 2) <= (pow(orb.x, 2) + pow(orb.y, 2)) && pow(375 - reflector.position, 2) > (pow(orb.x, 2) + pow(orb.y, 2)) && reflector.age <= 0) {
+					orb = ReflectDetect(orb, reflector);
+					reflector = AgeDetect(orb, reflector);
+				}
 			}
-			
-			/*{
+			else if (orb.type == 1 || orb.effect == 1)
+			{
 				orb = ReactorReflect(orb);
+				if (orb.effect == 1) orb.effect = 0;
 			}
-			*/
-			
+			else
+			{
+				orb = OrbReset(orb);
+			}
+			if (reflector.age > 0)	reflector.age--;
+
 			orb = OrbPosition(orb);
 
 			break;
@@ -226,25 +296,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
-		MoveToEx(mem1dc, Pibot_x, 0, lpPoint);
-		LineTo(mem1dc, Pibot_x, window_size_y);
-		MoveToEx(mem1dc, 0, Pibot_y, lpPoint);
-		LineTo(mem1dc, window_size_x, Pibot_y);
-		
-		///*
-		swprintf(lpOut, 100, L"orb : %g ", orb.angle);
-		TextOut(hdc, 0, 0, lpOut, lstrlen(lpOut));
-		swprintf(lpOut, 100, L"relative : %g ", atan2(-orb.y, -orb.x) / M_PI / 2 + 0.5);
-		TextOut(hdc, 0, 25, lpOut, lstrlen(lpOut));
-		swprintf(lpOut, 100, L"reflector : %g ", reflector.angle);
-		TextOut(hdc, 0, 50, lpOut, lstrlen(lpOut));
-		//*/
+
+		if (debugmod == 1)
+		{
+			MoveToEx(mem1dc, Pibot_x, 0, lpPoint);
+			LineTo(mem1dc, Pibot_x, window_size_y);
+			MoveToEx(mem1dc, 0, Pibot_y, lpPoint);
+			LineTo(mem1dc, window_size_x, Pibot_y);
+
+			swprintf(lpOut, 100, L"orb : %g ", orb.angle);
+			TextOut(hdc, 0, 0, lpOut, lstrlen(lpOut));
+			swprintf(lpOut, 100, L"relative : %g ", atan2(-orb.y, -orb.x) / M_PI / 2 + 0.5);
+			TextOut(hdc, 0, 25, lpOut, lstrlen(lpOut));
+			swprintf(lpOut, 100, L"reflector : %g ", reflector.angle);
+			TextOut(hdc, 0, 50, lpOut, lstrlen(lpOut));
+			swprintf(lpOut, 100, L"age : %d ", reflector.age);
+			TextOut(hdc, 0, 75, lpOut, lstrlen(lpOut));
+		}
 
 		SelectObject(mem2dc, BitStage);
 		BitBlt(mem1dc, Pibot_x - window_size_y / 2, Pibot_y - window_size_y / 2, window_size_y + 15, window_size_y + 15, mem2dc, 0, 0, SRCCOPY);
 		SelectObject(mem2dc, BitPanel);
 
-		BitBlt(mem1dc, Pibot_x + Stage_radius * cos(M_PI * 2 * reflector.angle) - Panel_size_x / 2, Pibot_y + Stage_radius * -sin(M_PI * 2 * reflector.angle) - Panel_size_y / 2, Panel_size_x, Panel_size_y, mem2dc, 0, 0, SRCCOPY);
+		BitBlt(mem1dc, Pibot_x + (Stage_radius - reflector.position) * cos(M_PI * 2 * reflector.angle) - Panel_size_x / 2, Pibot_y + (Stage_radius - reflector.position) * -sin(M_PI * 2 * reflector.angle) - Panel_size_y / 2, Panel_size_x, Panel_size_y, mem2dc, 0, 0, SRCCOPY);
 		SelectObject(mem2dc, BitOrb);
 		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
 		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);

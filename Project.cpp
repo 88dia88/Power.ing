@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <time.h>
 #include <stdlib.h>
 #include <Windows.h>
@@ -5,22 +6,22 @@
 #include <math.h>
 #include <atlImage.h>
 
-#define window_size_x 1900
-#define window_size_y 1000
-#define Stage_radius 375
-#define Center_radius 500
-#define Panel_size_x 270
-#define Panel_size_y 68
-#define Orb_size_x 50
-#define Orb_size_y 50
-#define Orb_radius 25
+//#include<stdio.h>
+
+#define window_size 0.75
+#define window_size_x window_size * 1000 //1900
+#define window_size_y window_size * 1000
+#define Stage_radius window_size_y * 0.375
+#define Panel_size_x window_size_y * 0.27
+#define Panel_size_y window_size_y * 0.068
+#define Orb_size window_size_y * 0.05
+#define Orb_radius Orb_size / 2
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
 LPCTSTR lpszWindowName = L"Window Programming 1";
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMessage, WPARAM wparam, LPARAM lparam);
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevlnstance, LPSTR lpszCmdParam, int nCmdShow)
 {
 	HWND hWnd;
@@ -54,6 +55,75 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
+static float Pibot_x = window_size_x / 2, Pibot_y = window_size_y / 2;
+struct Power_Orb
+{
+	double x, y, speed, angle, size;
+	double speedx, speedy;
+	int type;
+};
+struct Power_Reflector
+{
+	double angle, speed, size;
+	int module[5];
+};
+
+double AngleOverflow(double Angle)
+{
+	if (Angle >= 1)
+		Angle--;
+	else if (Angle < 0)
+		Angle++;
+	return Angle;
+}
+
+struct Power_Orb OrbPosition(struct Power_Orb Orb)
+{
+	Orb.x += Orb.speedx;
+	Orb.y += Orb.speedy;
+	return Orb;
+}
+struct Power_Orb OrbSpeed(struct Power_Orb Orb)
+{
+	Orb.speedx = Orb.speed * cos(M_PI * 2 * Orb.angle);
+	Orb.speedy = Orb.speed * sin(M_PI * 2 * Orb.angle);
+	return Orb;
+}
+struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflector)
+{
+	double Relative = Orb.angle - Reflector.angle;
+	Relative = AngleOverflow(Relative);
+
+	if (Relative > 0.125 && Relative < 0.5)	Relative += 0.25;
+	else if (Relative < 0.875 && Relative > 0.5)	Relative += 0.75;
+	else Relative = 0.5 - Relative;
+
+	Relative += Reflector.angle;
+	Relative = AngleOverflow(Relative);
+	Orb.angle = Relative;
+	Orb = OrbSpeed(Orb);
+	return Orb;
+}
+struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
+{
+	double Angle;
+	Angle = atan2(-Orb.y, Orb.x) / M_PI / 2 + 0.5;
+
+	if (Reflector.angle + Reflector.size >= 1)
+	{
+		if (Reflector.angle - Reflector.size < Angle || AngleOverflow(Reflector.angle + Reflector.size) > Angle)
+			Orb = OrbReflect(Orb, Reflector);
+	}
+	else if (Reflector.angle - Reflector.size < 0)
+	{
+		if (Reflector.angle + Reflector.size > Angle || AngleOverflow(Reflector.angle - Reflector.size) < Angle)
+			Orb = OrbReflect(Orb, Reflector);
+	}
+	else if (Reflector.angle + Reflector.size > Angle && Reflector.angle - Reflector.size < Angle);
+		Orb = OrbReflect(Orb, Reflector);
+	return Orb;
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	srand((int)time(NULL));
@@ -65,24 +135,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP hBitmap, BitStage, BitPanel, BitOrb;
 	HBITMAP oldBit1, oldBit2;
 	RECT win_rect;
+	
+	LPPOINT lpPoint = NULL;
+	TCHAR lpOut[100];
 
-	static float Pibot_x = window_size_x / 2, Pibot_y = window_size_y / 2;
-	static float Orb_x = Pibot_x, Orb_y = Pibot_y;		// ∞¯¿« ≈©±‚ 50
-	static float speed_x = 2, speed_y = 2;
 
-	// √Êµπ√≥∏Æ
-	if (pow(Stage_radius - Orb_radius, 2) < (pow(Orb_x - Pibot_x, 2) + pow(Orb_y - Pibot_y, 2))) {
-		speed_x = speed_x * -1;		// ((rand() % 21 - 10) / 10)
-		speed_y = speed_y * -1;
-	}
+	static struct Power_Orb orb;
+	static struct Power_Reflector reflector;
 
-	// «ÿæﬂ«“∞≈ 
-	// 1. ∞¢µµø° µ˚∏• ∆–≥Œ ∏∏µÈ±‚
-	// 2. ∞¢µµ∞° ¿÷¥¬ ∆–≥Œø° ∞¢µµ∞° ¿÷¥¬ ∞¯ ∆®±‚±‚
+	// Ìï¥ÏïºÌï†Í±∞ 
+	// 1. Í∞ÅÎèÑÏóê Îî∞Î•∏ Ìå®ÎÑê ÎßåÎì§Í∏∞
 
-	//--- ∏ﬁΩ√¡ˆ √≥∏Æ«œ±‚
+	//--- Î©îÏãúÏßÄ Ï≤òÎ¶¨ÌïòÍ∏∞
 	switch (iMsg) {
 	case WM_CREATE:
+
+		orb.x = 0, orb.y = 0, orb.angle = 0.75, orb.speed = 3, orb.size = 50;
+		orb = OrbSpeed(orb);
+		reflector.angle = 0.75, reflector.speed = 2, reflector.size = 0.1;
+
 		hdc = GetDC(hWnd);
 		GetClientRect(hWnd, &win_rect);
 
@@ -91,7 +162,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 		hBitmap = CreateCompatibleBitmap(hdc, win_rect.right, win_rect.bottom);
 		SelectObject(mem1dc, (HBITMAP)hBitmap);
-
+		FillRect(mem1dc, &win_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
 		BitStage = (HBITMAP)LoadImage(g_hInst, TEXT("Stage.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 1000 X 1000
 		BitPanel = (HBITMAP)LoadImage(g_hInst, TEXT("Panel.bmp"), IMAGE_BITMAP, 0, 0,
@@ -106,31 +177,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (wParam == VK_RETURN) {
 			SetTimer(hWnd, 1, 10, NULL);
 		}
-
+		else if (wParam == VK_LEFT) {
+			reflector.angle -= 0.005 * reflector.speed;
+			reflector.angle = AngleOverflow(reflector.angle);
+		}
+		else if (wParam == VK_RIGHT) {
+			reflector.angle += 0.005 * reflector.speed;
+			reflector.angle = AngleOverflow(reflector.angle);
+		}
 		break;
 
 	case WM_TIMER:
 		switch (wParam) {
 		case 1:
-			//Orb_x += speed_x;
-			Orb_y += speed_y;
+			if (pow(316, 2) <= (pow(orb.x, 2) + pow(orb.y, 2)) && pow(375, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
+				orb = ReflectDetect(orb, reflector);
+			}
+			orb = OrbPosition(orb);
 
 			break;
 		}
-
 		InvalidateRgn(hWnd, NULL, false);
 		break;
 
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
+		MoveToEx(mem1dc, Pibot_x, 0, lpPoint);
+		LineTo(mem1dc, Pibot_x, window_size_y);
+		MoveToEx(mem1dc, 0, Pibot_y, lpPoint);
+		LineTo(mem1dc, window_size_x, Pibot_y);
+		
+		/*
+		swprintf(lpOut, 100, L"orb : %g ", orb.angle);
+		TextOut(hdc, 0, 0, lpOut, lstrlen(lpOut));
+		swprintf(lpOut, 100, L"orb : %g ", reflector.angle);
+		TextOut(hdc, 0, 25, lpOut, lstrlen(lpOut));
+		*/
 
-		//FillRect(mem2dc, &win_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
 		SelectObject(mem2dc, BitStage);
-		BitBlt(mem1dc, window_size_x / 2 - 500, window_size_y / 2 - 500, 1000, 1000, mem2dc, 0, 0, SRCCOPY);
+		BitBlt(mem1dc, Pibot_x - 500, Pibot_y - 500, 1000, 1000, mem2dc, 0, 0, SRCCOPY);
 		SelectObject(mem2dc, BitPanel);
-		BitBlt(mem1dc, 815, 875, Panel_size_x, Panel_size_y, mem2dc, 0, 0, SRCCOPY);
+
+		BitBlt(mem1dc, Pibot_x + Stage_radius * cos(M_PI * 2 * reflector.angle) - Panel_size_x / 2, Pibot_y + Stage_radius * -sin(M_PI * 2 * reflector.angle) - Panel_size_y / 2, Panel_size_x, Panel_size_y, mem2dc, 0, 0, SRCCOPY);
 		SelectObject(mem2dc, BitOrb);
-		BitBlt(mem1dc, Orb_x - 25, Orb_y - 25, Orb_size_x, Orb_size_y, mem2dc, 0, 0, SRCCOPY);
+		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
 
 
 		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);
@@ -144,5 +234,5 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
-	return DefWindowProc(hWnd, iMsg, wParam, lParam); //--- ¿ß¿« ºº ∏ﬁΩ√¡ˆ ø‹¿« ≥™∏”¡ˆ ∏ﬁΩ√¡ˆ¥¬ OS∑Œ
+	return DefWindowProc(hWnd, iMsg, wParam, lParam); //--- ÏúÑÏùò ÏÑ∏ Î©îÏãúÏßÄ Ïô∏Ïùò ÎÇòÎ®∏ÏßÄ Î©îÏãúÏßÄÎäî OSÎ°ú
 }

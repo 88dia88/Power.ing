@@ -1,3 +1,12 @@
+/*
+	x1 = (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
+	y1 = (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) + (Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
+	x2 = (Reactor_radius-Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) - (Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
+	y2 = (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
+	x3 = (Reactor_radius + Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) - (-Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
+	y3 = (Reactor_radius + Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) - (-Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
+*/
+
 #define _USE_MATH_DEFINES
 #include <time.h>
 #include <stdlib.h>

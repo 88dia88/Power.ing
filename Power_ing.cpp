@@ -123,7 +123,7 @@ struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflect
 	Score += OrbScore(Orb);
 	Age += 50;
 	double Relative = AngleOverflow(Orb.angle - Reflector.angle);
-	
+
 	if (Relative > 0.125 && Relative <= 0.25) Relative += 0.25;
 	else if (Relative < 0.875 && Relative >= 0.75) Relative -= 0.25;
 	else Relative = 0.5 - Relative;
@@ -190,7 +190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP hBitmap, BitReactor, BitReflector, BitOrb;
 	HBITMAP oldBit1, oldBit2;
 	RECT win_rect;
-	
+
 	LPPOINT lpPoint = NULL;
 	TCHAR lpOut[100];
 
@@ -198,6 +198,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	static struct Power_Orb orb;
 	static struct Power_Reflector reflector;
+
+	POINT P_Point[3] = {
+		{ Pibot_x + (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
+		Pibot_y + (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) },
+		{ Pibot_x + (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
+		Pibot_y + (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) },
+		{ Pibot_x + (Reactor_radius + Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
+		Pibot_y + (Reactor_radius + Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) }
+	};		//PlgBlt = 회전하기 위한 3개(좌상,우상,좌하)의 좌표 필요
+
 
 	// 해야할거 
 	// 1. 각도에 따른 패널 만들기
@@ -256,7 +266,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (keyboard == false)
 		{
 			Mouse = MAKEPOINTS(lParam);
-			reflector.angle = AnglePosition(Mouse.x - Pibot_x, - Mouse.y + Pibot_y);
+			reflector.angle = AnglePosition(Mouse.x - Pibot_x, -Mouse.y + Pibot_y);
 		}
 	case WM_TIMER:
 		switch (wParam) {
@@ -326,15 +336,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 
-		SelectObject(mem2dc, BitReactor );
+		SelectObject(mem2dc, BitReactor);
 		BitBlt(mem1dc, Pibot_x - window_size_y / 2, Pibot_y - window_size_y / 2, window_size_y + 15, window_size_y + 15, mem2dc, 0, 0, SRCCOPY);
-		
+
 		SelectObject(mem2dc, BitReflector);
-		BitBlt(mem1dc, Pibot_x + (Reactor_radius / reflector.position) * cos(M_PI * 2 * reflector.angle) - Reflector_size_x / 2, Pibot_y + (Reactor_radius / reflector.position) * -sin(M_PI * 2 * reflector.angle) - Reflector_size_y / 2, Reflector_size_x, Reflector_size_y, mem2dc, 0, 0, SRCCOPY);
-		
+		//BitBlt(mem1dc, Pibot_x + (Reactor_radius / reflector.position) * cos(M_PI * 2 * reflector.angle) - Reflector_size_x / 2, Pibot_y + (Reactor_radius / reflector.position) * -sin(M_PI * 2 * reflector.angle) - Reflector_size_y / 2, Reflector_size_x, Reflector_size_y, mem2dc, 0, 0, SRCCOPY);
+		PlgBlt(mem1dc, P_Point, mem2dc, 0, 0, Reflector_size_x,
+			Reflector_size_y, NULL, NULL, NULL);
+
 		SelectObject(mem2dc, BitOrb);
 		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
-		
+
 		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);
 
 		if (debug == true)

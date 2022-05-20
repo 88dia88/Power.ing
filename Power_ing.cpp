@@ -1,12 +1,3 @@
-/*
-	x1 = (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
-	y1 = (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) + (Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
-	x2 = (Reactor_radius-Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) - (Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
-	y2 = (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
-	x3 = (Reactor_radius + Reflector_size_y / 2) * cos(M_PI * 2 * reflector.angle) - (-Reflector_size_x / 2) * sin(M_PI * 2 * Orb.angle);
-	y3 = (Reactor_radius + Reflector_size_y / 2) * sin(M_PI * 2 * reflector.angle) - (-Reflector_size_x / 2) * cos(M_PI * 2 * Orb.angle);
-*/
-
 #define _USE_MATH_DEFINES
 #include <time.h>
 #include <stdlib.h>
@@ -18,11 +9,16 @@
 #define window_size 0.75
 #define window_size_x window_size * 1000 //1900
 #define window_size_y window_size * 1000
-#define Stage_radius window_size_y * 0.375
-#define Panel_size_x window_size_y * 0.27
-#define Panel_size_y window_size_y * 0.068
-#define Orb_size window_size_y * 0.05
+#define Pibot_x window_size_x / 2
+#define Pibot_y window_size_y / 2
+#define Reactor_radius window_size * 375
+#define Reflector_size_x window_size * 270
+#define Reflector_size_y window_size * 68
+#define Orb_size window_size * 50
 #define Orb_radius Orb_size / 2
+
+#define debug true
+#define keyboard true
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -62,7 +58,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
-static float Pibot_x = window_size_x / 2, Pibot_y = window_size_y / 2;
+int Cherenkov, Age;
+double Score;
+
 struct Power_Orb
 {
 	double x, y, speed, angle, size;
@@ -72,7 +70,7 @@ struct Power_Orb
 struct Power_Reflector
 {
 	double angle, position, speed, size;
-	int module[5], age;
+	int module[5], age, direction;
 };
 
 double AngleOverflow(double Angle)
@@ -82,6 +80,29 @@ double AngleOverflow(double Angle)
 	else if (Angle < 0)
 		Angle++;
 	return Angle;
+}
+double AnglePosition(int x, int y)
+{
+	return atan2(-y, -x) / M_PI / 2 + 0.5;
+}
+double DistancePosition(double x, double y)
+{
+	return (x * x) + (y * y);
+}
+int Distancecmp(double x, double y, double dis)
+{
+	if (DistancePosition(x, y) < dis * dis)
+		return 1;
+	else if (DistancePosition(x, y) == dis * dis)
+		return 0;
+	else if (DistancePosition(x, y) > dis * dis)
+		return -1;
+}
+
+double OrbScore(struct Power_Orb Orb)
+{
+	if (Cherenkov == true) return Orb.speed * 40;
+	else return	Orb.speed * 20;
 }
 
 struct Power_Orb OrbPosition(struct Power_Orb Orb)
@@ -96,8 +117,11 @@ struct Power_Orb OrbSpeed(struct Power_Orb Orb)
 	Orb.speedy = Orb.speed * sin(M_PI * 2 * Orb.angle);
 	return Orb;
 }
+
 struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflector)
 {
+	Score += OrbScore(Orb);
+	Age += 50;
 	double Relative = AngleOverflow(Orb.angle - Reflector.angle);
 	
 	if (Relative > 0.125 && Relative <= 0.25) Relative += 0.25;
@@ -112,6 +136,7 @@ struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflect
 }
 struct Power_Orb OrbReset(struct Power_Orb Orb)
 {
+	Score = 0, Cherenkov = false;
 	Orb.x = 0, Orb.y = 0, Orb.angle = 0.75, Orb.speed = 5, Orb.size = 50, Orb.type = 0;
 	Orb = OrbSpeed(Orb);
 	return Orb;
@@ -119,8 +144,7 @@ struct Power_Orb OrbReset(struct Power_Orb Orb)
 
 struct Power_Orb ReactorReflect(struct Power_Orb Orb)
 {
-	double Angle;
-	Angle = atan2(-Orb.y, -Orb.x) / M_PI / 2 + 0.5;
+	double Angle = AnglePosition(Orb.x, Orb.y);
 	double Relative = AngleOverflow(Orb.angle - Angle);
 
 	Relative = 0.5 - Relative;
@@ -131,8 +155,7 @@ struct Power_Orb ReactorReflect(struct Power_Orb Orb)
 }
 struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
 {
-	double Angle;
-	Angle = atan2(-Orb.y, -Orb.x) / M_PI / 2 + 0.5;
+	double Angle = AnglePosition(Orb.x, Orb.y);
 
 	if (Reflector.angle + Reflector.size >= 1)
 	{
@@ -151,27 +174,8 @@ struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Refl
 
 struct Power_Reflector ReflectorReset(struct Power_Reflector Reflector)
 {
-	Reflector.angle = 0.75, Reflector.position = 0, Reflector.speed = 1, Reflector.size = 0.1, Reflector.age = 0;
-	Reflector.module[0] = 0, Reflector.module[1] = 0, Reflector.module[2] = 0, Reflector.module[3] = 0, Reflector.module[4] = 0;
-	return Reflector;
-}
-struct Power_Reflector AgeDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
-{
-	double Angle;
-	Angle = atan2(-Orb.y, -Orb.x) / M_PI / 2 + 0.5;
-
-	if (Reflector.angle + Reflector.size >= 1)
-	{
-		if (Reflector.angle - Reflector.size < Angle || AngleOverflow(Reflector.angle + Reflector.size) > Angle)
-			Reflector.age += 50;
-	}
-	else if (Reflector.angle - Reflector.size < 0)
-	{
-		if (Reflector.angle + Reflector.size > Angle || AngleOverflow(Reflector.angle - Reflector.size) < Angle)
-			Reflector.age += 50;
-	}
-	else if (Reflector.angle + Reflector.size > Angle && Reflector.angle - Reflector.size < Angle)
-		Reflector.age += 50;
+	Reflector.angle = 0.75, Reflector.position = 1, Reflector.speed = 1, Reflector.size = 0.1, Reflector.age = 0, Reflector.direction = 1;
+	Reflector.module[0] = 0, Reflector.module[1] = 0, Reflector.module[2] = 0, Reflector.module[3] = 1, Reflector.module[4] = 0;
 	return Reflector;
 }
 
@@ -183,13 +187,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	HDC hdc;
 	static HDC mem1dc, mem2dc;
-	static HBITMAP hBitmap, BitStage, BitPanel, BitOrb;
+	static HBITMAP hBitmap, BitReactor, BitReflector, BitOrb;
 	HBITMAP oldBit1, oldBit2;
 	RECT win_rect;
 	
 	LPPOINT lpPoint = NULL;
 	TCHAR lpOut[100];
-	int debugmod = 1;
+
+	POINTS Mouse = MAKEPOINTS(lParam);
 
 	static struct Power_Orb orb;
 	static struct Power_Reflector reflector;
@@ -213,9 +218,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		hBitmap = CreateCompatibleBitmap(hdc, win_rect.right, win_rect.bottom);
 		SelectObject(mem1dc, (HBITMAP)hBitmap);
 		FillRect(mem1dc, &win_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
-		BitStage = (HBITMAP)LoadImage(g_hInst, TEXT("Reactor_750.bmp"), IMAGE_BITMAP, 0, 0,
+		BitReactor = (HBITMAP)LoadImage(g_hInst, TEXT("Reactor_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 1000 X 1000
-		BitPanel = (HBITMAP)LoadImage(g_hInst, TEXT("Reflector_750.bmp"), IMAGE_BITMAP, 0, 0,
+		BitReflector = (HBITMAP)LoadImage(g_hInst, TEXT("Reflector_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 270 X 68
 		BitOrb = (HBITMAP)LoadImage(g_hInst, TEXT("Orb_750.bmp"), IMAGE_BITMAP, 0, 0,
 			LR_LOADFROMFILE | LR_CREATEDIBSECTION);
@@ -224,7 +229,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 		ReleaseDC(hWnd, hdc);
 		break;
-
 	case WM_KEYDOWN:
 		if (wParam == VK_RETURN) {
 			SetTimer(hWnd, 1, 10, NULL);
@@ -239,50 +243,66 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-
+	case WM_KEYUP:
+		if (keyboard == true)
+		{
+			if (wParam == VK_RIGHT || wParam == VK_LEFT) {
+				if (reflector.angle > 0.05 && reflector.angle < 0.45) reflector.direction = -1;
+				else if (reflector.angle > 0.55 && reflector.angle < 0.95) reflector.direction = 1;
+			}
+		}
+		break;
+	case WM_MOUSEMOVE:
+		if (keyboard == false)
+		{
+			Mouse = MAKEPOINTS(lParam);
+			reflector.angle = AnglePosition(Mouse.x - Pibot_x, - Mouse.y + Pibot_y);
+		}
 	case WM_TIMER:
 		switch (wParam) {
-		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)
-			if (GetAsyncKeyState(VK_RIGHT) & 0x8001) {		//http://www.silverwolf.co.kr/cplusplus/4842
-				
-				if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
-					reflector.angle += 0.0025 * reflector.speed;
-				}
-				else
-				{
-					reflector.angle += 0.005 * reflector.speed;
-				}
-				reflector.angle = AngleOverflow(reflector.angle);
-			}
-			else if (GetAsyncKeyState(VK_LEFT) & 0x8001) {
-				if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
-					reflector.angle -= 0.0025 * reflector.speed;
-				}
-				else
-				{
-					reflector.angle -= 0.005 * reflector.speed;
-				}
-				reflector.angle = AngleOverflow(reflector.angle);
-			}
-			if (reflector.module[3] == 0)
+		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)http://www.silverwolf.co.kr/cplusplus/4842
+			if (keyboard == true)
 			{
-				if (GetAsyncKeyState(VK_UP) & 0x8001 && reflector.position < 60 && reflector.age < 25) {
-					if (reflector.position < 50) reflector.position += 5;
-					reflector.position += 10;
+				if (GetAsyncKeyState(VK_RIGHT) & 0x8001) {
+
+					if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
+						reflector.angle += 0.0025 * reflector.speed * reflector.position * reflector.direction;
+					}
+					else
+					{
+						reflector.angle += 0.005 * reflector.speed * reflector.position * reflector.direction;
+					}
+					reflector.angle = AngleOverflow(reflector.angle);
 				}
-				else if (GetAsyncKeyState(VK_DOWN) & 0x8001 && reflector.position > -60 && reflector.age < 25) {
-					if (reflector.position > -50) reflector.position -= 5;
-					reflector.position -= 10;
+				else if (GetAsyncKeyState(VK_LEFT) & 0x8001) {
+					if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
+						reflector.angle -= 0.0025 * reflector.speed * reflector.position * reflector.direction;
+					}
+					else
+					{
+						reflector.angle -= 0.005 * reflector.speed * reflector.position * reflector.direction;
+					}
+					reflector.angle = AngleOverflow(reflector.angle);
+				}
+				if (reflector.module[3] == 0)
+				{
+					if (GetAsyncKeyState(VK_UP) & 0x8001 || GetAsyncKeyState(VK_SPACE) & 0x8001 && reflector.position < 1.55 && Age < 49) {
+						if (reflector.position < 1.5) reflector.position += 0.05;
+						reflector.position += 0.05;
+					}
+					else if (GetAsyncKeyState(VK_DOWN) & 0x8001 || GetAsyncKeyState(VK_CONTROL) & 0x8001 && reflector.position > 0.825 && Age < 49) {
+						if (reflector.position > 0.875) reflector.position -= 0.05;
+						reflector.position -= 0.05;
+					}
 				}
 			}
-			if (reflector.position > 0)	reflector.position -= 10;
-			if (reflector.position < 0)	reflector.position += 10;
+			if (reflector.position > 1)	reflector.position -= 0.05;
+			if (reflector.position < 1)	reflector.position += 0.05;
 			break;
 		case 1:
 			if (pow(500, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
-				if (pow(316 - reflector.position, 2) <= (pow(orb.x, 2) + pow(orb.y, 2)) && pow(375 - reflector.position, 2) > (pow(orb.x, 2) + pow(orb.y, 2)) && reflector.age <= 0) {
+				if (Distancecmp(orb.x, orb.y, 316 / reflector.position) <= 0 && Distancecmp(orb.x, orb.y, 375 / reflector.position) > 0 && Age <= 0) {
 					orb = ReflectDetect(orb, reflector);
-					reflector = AgeDetect(orb, reflector);
 				}
 			}
 			else if (orb.type == 1 || orb.effect == 1)
@@ -294,7 +314,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			{
 				orb = OrbReset(orb);
 			}
-			if (reflector.age > 0)	reflector.age--;
+			if (Age > 0)	Age--;
 
 			orb = OrbPosition(orb);
 
@@ -306,7 +326,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 
-		if (debugmod == 1)
+		SelectObject(mem2dc, BitReactor );
+		BitBlt(mem1dc, Pibot_x - window_size_y / 2, Pibot_y - window_size_y / 2, window_size_y + 15, window_size_y + 15, mem2dc, 0, 0, SRCCOPY);
+		
+		SelectObject(mem2dc, BitReflector);
+		BitBlt(mem1dc, Pibot_x + (Reactor_radius / reflector.position) * cos(M_PI * 2 * reflector.angle) - Reflector_size_x / 2, Pibot_y + (Reactor_radius / reflector.position) * -sin(M_PI * 2 * reflector.angle) - Reflector_size_y / 2, Reflector_size_x, Reflector_size_y, mem2dc, 0, 0, SRCCOPY);
+		
+		SelectObject(mem2dc, BitOrb);
+		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
+		
+		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);
+
+		if (debug == true)
 		{
 			MoveToEx(mem1dc, Pibot_x, 0, lpPoint);
 			LineTo(mem1dc, Pibot_x, window_size_y);
@@ -319,18 +350,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			TextOut(hdc, 0, 25, lpOut, lstrlen(lpOut));
 			swprintf(lpOut, 100, L"reflector : %g ", reflector.angle);
 			TextOut(hdc, 0, 50, lpOut, lstrlen(lpOut));
-			swprintf(lpOut, 100, L"age : %d ", reflector.age);
+			swprintf(lpOut, 100, L"age : %d ", Age);
 			TextOut(hdc, 0, 75, lpOut, lstrlen(lpOut));
+			swprintf(lpOut, 100, L"score : %.0f ", Score);
+			TextOut(hdc, 0, 100, lpOut, lstrlen(lpOut));
 		}
-
-		SelectObject(mem2dc, BitStage);
-		BitBlt(mem1dc, Pibot_x - window_size_y / 2, Pibot_y - window_size_y / 2, window_size_y + 15, window_size_y + 15, mem2dc, 0, 0, SRCCOPY);
-		SelectObject(mem2dc, BitPanel);
-
-		BitBlt(mem1dc, Pibot_x + (Stage_radius - reflector.position) * cos(M_PI * 2 * reflector.angle) - Panel_size_x / 2, Pibot_y + (Stage_radius - reflector.position) * -sin(M_PI * 2 * reflector.angle) - Panel_size_y / 2, Panel_size_x, Panel_size_y, mem2dc, 0, 0, SRCCOPY);
-		SelectObject(mem2dc, BitOrb);
-		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
-		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);
 
 		EndPaint(hWnd, &ps);
 		break;

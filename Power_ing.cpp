@@ -1,381 +1,414 @@
-#define _USE_MATH_DEFINES
-#include <time.h>
-#include <stdlib.h>
-#include <Windows.h>
-#include <tchar.h>
-#include <math.h>
-#include <atlImage.h>
-
-#define window_size 0.75
-#define window_size_x window_size * 1000 //1900
-#define window_size_y window_size * 1000
-#define Pibot_x window_size_x / 2
-#define Pibot_y window_size_y / 2
-#define Reactor_radius window_size * 375
-#define Reflector_size_x window_size * 270
-#define Reflector_size_y window_size * 68
-#define Orb_size window_size * 50
-#define Orb_radius Orb_size / 2
-
-#define debug true
-#define keyboard true
-
-HINSTANCE g_hInst;
-LPCTSTR lpszClass = L"Window Class Name";
-LPCTSTR lpszWindowName = L"Window Programming 1";
-
-LRESULT CALLBACK WndProc(HWND hwnd, UINT iMessage, WPARAM wparam, LPARAM lparam);
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevlnstance, LPSTR lpszCmdParam, int nCmdShow)
-{
-	HWND hWnd;
-	MSG Message;
-	WNDCLASSEX WndClass;
-	g_hInst = hInstance;
-	WndClass.cbSize = sizeof(WndClass);
-	WndClass.style = CS_HREDRAW | CS_VREDRAW;
-	WndClass.lpfnWndProc = (WNDPROC)WndProc;
-	WndClass.cbClsExtra = 0;
-	WndClass.cbWndExtra = 0;
-	WndClass.hInstance = hInstance;
-	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	WndClass.lpszMenuName = NULL;
-	WndClass.lpszClassName = lpszClass;
-	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-	RegisterClassEx(&WndClass);
-
-	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-		| WS_MAXIMIZEBOX | WS_MINIMIZEBOX, 0, 0, window_size_x + 15, window_size_y + 40,
-		NULL, (HMENU)NULL, hInstance, NULL);
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
-
-	while (GetMessage(&Message, 0, 0, 0)) {
-		TranslateMessage(&Message);
-		DispatchMessage(&Message);
-	}
-	return Message.wParam;
-}
-
-int Cherenkov, Age;
-double Score;
-
-struct Power_Orb
-{
-	double x, y, speed, angle, size;
-	double speedx, speedy;
-	int type, effect;
-};
-struct Power_Reflector
-{
-	double angle, position, speed, size;
-	int module[5], age, direction;
-};
-
-double AngleOverflow(double Angle)
-{
-	if (Angle >= 1)
-		Angle--;
-	else if (Angle < 0)
-		Angle++;
-	return Angle;
-}
-double AnglePosition(int x, int y)
-{
-	return atan2(-y, -x) / M_PI / 2 + 0.5;
-}
-double DistancePosition(double x, double y)
-{
-	return (x * x) + (y * y);
-}
-int Distancecmp(double x, double y, double dis)
-{
-	if (DistancePosition(x, y) < dis * dis)
-		return 1;
-	else if (DistancePosition(x, y) == dis * dis)
-		return 0;
-	else if (DistancePosition(x, y) > dis * dis)
-		return -1;
-}
-
-double OrbScore(struct Power_Orb Orb)
-{
-	if (Cherenkov == true) return Orb.speed * 40;
-	else return	Orb.speed * 20;
-}
-
-struct Power_Orb OrbPosition(struct Power_Orb Orb)
-{
-	Orb.x += Orb.speedx;
-	Orb.y += Orb.speedy;
-	return Orb;
-}
-struct Power_Orb OrbSpeed(struct Power_Orb Orb)
-{
-	Orb.speedx = Orb.speed * cos(M_PI * 2 * Orb.angle);
-	Orb.speedy = Orb.speed * sin(M_PI * 2 * Orb.angle);
-	return Orb;
-}
-
-struct Power_Orb OrbReflect(struct Power_Orb Orb, struct Power_Reflector Reflector)
-{
-	Score += OrbScore(Orb);
-	Age += 50;
-	double Relative = AngleOverflow(Orb.angle - Reflector.angle);
-
-	if (Relative > 0.125 && Relative <= 0.25) Relative += 0.25;
-	else if (Relative < 0.875 && Relative >= 0.75) Relative -= 0.25;
-	else Relative = 0.5 - Relative;
-
-	Orb.angle = AngleOverflow(Relative + Reflector.angle);
-	Orb.x += Orb.speed * cos(M_PI * 2 * Orb.angle);
-	Orb.y += Orb.speed * sin(M_PI * 2 * Orb.angle);
-	Orb = OrbSpeed(Orb);
-	return Orb;
-}
-struct Power_Orb OrbReset(struct Power_Orb Orb)
-{
-	Score = 0, Cherenkov = false;
-	Orb.x = 0, Orb.y = 0, Orb.angle = 0.75, Orb.speed = 5, Orb.size = 50, Orb.type = 0;
-	Orb = OrbSpeed(Orb);
-	return Orb;
-}
-
-struct Power_Orb ReactorReflect(struct Power_Orb Orb)
-{
-	double Angle = AnglePosition(Orb.x, Orb.y);
-	double Relative = AngleOverflow(Orb.angle - Angle);
-
-	Relative = 0.5 - Relative;
-
-	Orb.angle = AngleOverflow(Relative + Angle);
-	Orb = OrbSpeed(Orb);
-	return Orb;
-}
-struct Power_Orb ReflectDetect(struct Power_Orb Orb, struct Power_Reflector Reflector)
-{
-	double Angle = AnglePosition(Orb.x, Orb.y);
-
-	if (Reflector.angle + Reflector.size >= 1)
-	{
-		if (Reflector.angle - Reflector.size < Angle || AngleOverflow(Reflector.angle + Reflector.size) > Angle)
-			Orb = OrbReflect(Orb, Reflector);
-	}
-	else if (Reflector.angle - Reflector.size < 0)
-	{
-		if (Reflector.angle + Reflector.size > Angle || AngleOverflow(Reflector.angle - Reflector.size) < Angle)
-			Orb = OrbReflect(Orb, Reflector);
-	}
-	else if (Reflector.angle + Reflector.size > Angle && Reflector.angle - Reflector.size < Angle)
-		Orb = OrbReflect(Orb, Reflector);
-	return Orb;
-}
-
-struct Power_Reflector ReflectorReset(struct Power_Reflector Reflector)
-{
-	Reflector.angle = 0.75, Reflector.position = 1, Reflector.speed = 1, Reflector.size = 0.1, Reflector.age = 0, Reflector.direction = 1;
-	Reflector.module[0] = 0, Reflector.module[1] = 0, Reflector.module[2] = 0, Reflector.module[3] = 1, Reflector.module[4] = 0;
-	return Reflector;
-}
-
+#include "Power_ing.h"
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
+	//--------------------------------------------------------------------------------------------------------------//
 	srand((int)time(NULL));
-
 	PAINTSTRUCT ps;
-
-	HDC hdc;
-	static HDC mem1dc, mem2dc;
-	static HBITMAP hBitmap, BitReactor, BitReflector, BitOrb;
-	HBITMAP oldBit1, oldBit2;
-	RECT win_rect;
-
-	LPPOINT lpPoint = NULL;
-	TCHAR lpOut[100];
 
 	POINTS Mouse = MAKEPOINTS(lParam);
 
-	static struct Power_Orb orb;
-	static struct Power_Reflector reflector;
+	// 추가변수--------
+	static bool endscene = false;		// 엔드씬
+	// -- 스타트 씬 제작부
+	static bool Start_scene = true;		// 스타트 씬
+	static bool EscMode = false;
+	static bool start_button = false;	// 각 버튼위에 마우스가 올라가 있으면 값이 변경됨
+	static bool module_button = false;
+	static bool option_button = false;
+	static bool quit_button = false;
+	// -------------------
 
-	POINT P_Point[3] = {
-		{ Pibot_x + (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
-		Pibot_y + (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) },
-		{ Pibot_x + (Reactor_radius - Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
-		Pibot_y + (Reactor_radius - Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) },
-		{ Pibot_x + (Reactor_radius + Reflector_size_y / 2) * cos(M_PI * 2 * -reflector.angle) + (Reflector_size_x / 2) * sin(M_PI * 2 * -reflector.angle),
-		Pibot_y + (Reactor_radius + Reflector_size_y / 2) * sin(M_PI * 2 * -reflector.angle) - (Reflector_size_x / 2) * cos(M_PI * 2 * -reflector.angle) }
-	};		//PlgBlt = 회전하기 위한 3개(좌상,우상,좌하)의 좌표 필요
+	//PlgBlt = 회전하기 위한 3개(좌상,우상,좌하)의 좌표 필요
 
-
+	//--------------------------------------------------------------------------------------------------------------//
 	// 해야할거 
-	// 1. 각도에 따른 패널 만들기
+	// 
+	// ------------------------------ 안어려움
+	// 쿨타임 A - 완료
+	// 
+	// 체렌코프 발동 A || 게임오버 A - 완료
+	// 
+	// 충돌 A  - 완료
+	// 
+	// 시작 A 
+	// 
+	// 벙커 개패 A - 완료
+	// 
+	// 원소 UI || 공 종류 UI
+	// 
+	// 마스크 노가다 - 완료
+	// 
+	// ------------------------------ 어려울 수 있음
+	//
+	// 온도 UI - 완료
+	// 
+	// 공 트레일 (잔상효과) - 완료
+	// 
+	// 1.1 double 1.2 triple - 완료
+	// 
+	// 공 종류
+	// 
+	// ------------------------------ 어려움
+	// 
+	// 게임 시작 / 오버 UI - 완료
+	// 
+	// -----------
+	// 공 여러개 - 기반 제작 완료
+	// 아이템
+	// 2.1 spliter
+	// -----------
+	// 
+	// 2.2 launcher
+	// 4.1 reserver, 4.2
+	// 
+	// ------------------------------ 벽돌깨기
+	// 
+	//--------------------------------------------------------------------------------------------------------------//메시지 처리하기
 
-	//--- 메시지 처리하기
 	switch (iMsg) {
 	case WM_CREATE:
+		GameStart = false;
+		EffectHead->next = EffectHead;
+		OrbHead->next = OrbHead;
+		ReflectorHead->next = ReflectorHead;
+		ReflectorHead = ReflectorReset(ReflectorHead);
+		ReflectorCreate(ReflectorHead, 0);
+		GeneralReset();
+		PreTime = -25;
+		DisplayLoad();
 
-		orb = OrbReset(orb);
-		reflector = ReflectorReset(reflector);
-
-		hdc = GetDC(hWnd);
-		GetClientRect(hWnd, &win_rect);
-
-		mem1dc = CreateCompatibleDC(hdc);
-		mem2dc = CreateCompatibleDC(mem1dc);
-
-		hBitmap = CreateCompatibleBitmap(hdc, win_rect.right, win_rect.bottom);
-		SelectObject(mem1dc, (HBITMAP)hBitmap);
-		FillRect(mem1dc, &win_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
-		BitReactor = (HBITMAP)LoadImage(g_hInst, TEXT("Reactor_750.bmp"), IMAGE_BITMAP, 0, 0,
-			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 1000 X 1000
-		BitReflector = (HBITMAP)LoadImage(g_hInst, TEXT("Reflector_750.bmp"), IMAGE_BITMAP, 0, 0,
-			LR_LOADFROMFILE | LR_CREATEDIBSECTION);			// 270 X 68
-		BitOrb = (HBITMAP)LoadImage(g_hInst, TEXT("Orb_750.bmp"), IMAGE_BITMAP, 0, 0,
-			LR_LOADFROMFILE | LR_CREATEDIBSECTION);
-
-		SetTimer(hWnd, 0, 10, NULL);
-
-		ReleaseDC(hWnd, hdc);
+		SetTimer(hWnd, 5, 50, NULL);
 		break;
 	case WM_KEYDOWN:
-		if (wParam == VK_RETURN) {
-			SetTimer(hWnd, 1, 10, NULL);
-		}
-		if (reflector.module[3] == 1)
+		if (wParam == VK_ESCAPE)
 		{
-			if (wParam == VK_UP) {
-				if (reflector.speed < 2) reflector.speed += 0.5;
+			if (EscMode)
+			{
+				EscMode = false;
+				Start_scene = false;
 			}
-			else if (wParam == VK_DOWN) {
-				if (reflector.speed > 0) reflector.speed -= 0.5;
+			else if (endscene)
+			{
+				PreTime = 5;
+				endscene = false;
+				Start_scene = true;
+				KillTimer(hWnd, 0);
+				SetTimer(hWnd, 5, 50, NULL);
+			}
+			else if (Start_scene == false)
+			{
+				EscMode = true;
+				PreTime = 15;
+			}
+		}
+		if (wParam == VK_RETURN) {
+			if (Time == -1)
+			{
+				SetTimer(hWnd, 3, 10, NULL);
+			}
+			else if (Time == 0 && PressureCheck())
+			{
+				GameStart = true;
+			}
+			if (Cherenkov.meter >= 875 && Cherenkov.lever < 6 && Cherenkov.cherenkov == false)
+			{
+				Cherenkov.lever++;
 			}
 		}
 		break;
-	case WM_KEYUP:
-		if (keyboard == true)
-		{
-			if (wParam == VK_RIGHT || wParam == VK_LEFT) {
-				if (reflector.angle > 0.05 && reflector.angle < 0.45) reflector.direction = -1;
-				else if (reflector.angle > 0.55 && reflector.angle < 0.95) reflector.direction = 1;
-			}
+	case WM_CHAR:
+		if (wParam == 'u') {				// 엔드 씬 추가부
+			PreTime == 25;
+			SetTimer(hWnd, 100, 50, NULL);
+		}
+		else if (wParam == 'p') {
+			Start_scene = true;				// 스타트씬 강제 표출 디버그용
 		}
 		break;
 	case WM_MOUSEMOVE:
-		if (keyboard == false)
+		if (Start_scene)
 		{
 			Mouse = MAKEPOINTS(lParam);
-			reflector.angle = AnglePosition(Mouse.x - Pibot_x, -Mouse.y + Pibot_y);
+			start_button = UIButtonSelected(-700, -135, 750, 150, Mouse);
+			module_button = UIButtonSelected(-700, 15, 750, 150, Mouse);
+			option_button = UIButtonSelected(-700, 165, 750, 150, Mouse);
+			quit_button = (!EscMode && UIButtonSelected(-700, 315, 750, 150, Mouse));
 		}
+		else
+		{
+			if (Button[1] != 0)
+			{
+				Mouse = MAKEPOINTS(lParam);
+				if (Mouse.x < Pibot_x - 178.5 * window_size)
+				{
+					if (Mouse.x > Pibot_x - 821.5 * window_size) Button[1] = (int)(DistancePosition(Mouse.x - (Pibot_x - 821.5 * window_size), Mouse.y - (Pibot_x - 300 * window_size)) / 12.5) + 1;
+					else Button[1] = -(int)(DistancePosition(Mouse.x - (Pibot_x - 821.5 * window_size), Mouse.y - (Pibot_x - 300 * window_size)) / 12.5) - 1;
+				}
+			}
+			if (Button[2] != 0)
+			{
+				Mouse = MAKEPOINTS(lParam);
+				if (Mouse.x < Pibot_x - 321.5 * window_size)
+				{
+					if (Mouse.x > Pibot_x - 678.5 * window_size) Button[2] = (int)(DistancePosition(Mouse.x - (Pibot_x - 678.5 * window_size), Mouse.y - (Pibot_x - 300 * window_size)) / 25) + 1;
+					else Button[2] = -(int)(DistancePosition(Mouse.x - (Pibot_x - 678.5 * window_size), Mouse.y - (Pibot_x - 300 * window_size)) / 25) - 1;
+				}
+			}
+			if (keyboard == false)
+			{
+				Mouse = MAKEPOINTS(lParam);
+				//Reflector->angle = AnglePosition(Mouse.x - Pibot_x, Mouse.y - Pibot_y);
+			}
+		}
+		break;
+	case WM_LBUTTONDOWN:
+		Mouse = MAKEPOINTS(lParam);
+		if (Start_scene)
+		{
+			if (start_button) {
+				if (EscMode)
+				{
+					EscMode = false;
+					Start_scene = false;
+				}
+				else
+				{
+					Start_scene = false;
+					PreTime = -25;
+				}
+			}
+			else if (module_button) {
+				// 모듈 클릭시 대화상자
+				//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
+			}
+			else if (option_button)
+			{
+				if (EscMode)
+				{
+					GeneralReset();
+					EscMode = false;
+					PreTime = 5;
+					Start_scene = true;
+					KillTimer(hWnd, 0);
+					SetTimer(hWnd, 5, 50, NULL);
+				}
+				// 옵션 클릭시 대화상자
+			}
+			else if (quit_button)
+				PostQuitMessage(0);
+		}
+		else if (endscene)
+		{
+			PreTime = 5;
+			endscene = false;
+			Start_scene = true;
+			KillTimer(hWnd, 0);
+			SetTimer(hWnd, 5, 50, NULL);
+		}
+		else
+		{
+			if (Mouse.y >= Pibot_y + (251 * window_size) && Mouse.y <= Pibot_y + (301 * window_size))
+			{
+				if (Mouse.x >= Pibot_x + (653.5 * window_size) && Mouse.x <= Pibot_x + (703.5 * window_size)) Button[3] = 10;
+				else if (Mouse.x >= Pibot_x + (796.5 * window_size) && Mouse.x <= Pibot_x + (846.5 * window_size)) Button[4] = 10;
+			}
+			if (Time == 0 && Mouse.y >= Pibot_y + (240 * window_size) && Mouse.y <= Pibot_y + (340 * window_size))
+			{
+				if (Mouse.x > Pibot_x - (821.5 * window_size) && Mouse.x <= Pibot_x - (781.5 * window_size)) Button[1] = 1;
+				else if (Mouse.x >= Pibot_x - (861.5 * window_size) && Mouse.x < Pibot_x - (821.5 * window_size)) Button[1] = -1;
+				else if (Mouse.x > Pibot_x - (678.5 * window_size) && Mouse.x <= Pibot_x - (638.5 * window_size)) Button[2] = 1;
+				else if (Mouse.x >= Pibot_x - (718.5 * window_size) && Mouse.x < Pibot_x - (678.5 * window_size)) Button[2] = -1;
+			}
+		}
+		break;
+	case WM_LBUTTONUP:
+		Button[1] = 0;
+		Button[2] = 0;
+		break;
 	case WM_TIMER:
 		switch (wParam) {
 		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)http://www.silverwolf.co.kr/cplusplus/4842
-			if (keyboard == true)
+			
+			if (EscMode)
 			{
-				if (GetAsyncKeyState(VK_RIGHT) & 0x8001) {
-
-					if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
-						reflector.angle += 0.0025 * reflector.speed * reflector.position * reflector.direction;
-					}
-					else
-					{
-						reflector.angle += 0.005 * reflector.speed * reflector.position * reflector.direction;
-					}
-					reflector.angle = AngleOverflow(reflector.angle);
-				}
-				else if (GetAsyncKeyState(VK_LEFT) & 0x8001) {
-					if (GetAsyncKeyState(VK_SHIFT) & 0x8001) {
-						reflector.angle -= 0.0025 * reflector.speed * reflector.position * reflector.direction;
-					}
-					else
-					{
-						reflector.angle -= 0.005 * reflector.speed * reflector.position * reflector.direction;
-					}
-					reflector.angle = AngleOverflow(reflector.angle);
-				}
-				if (reflector.module[3] == 0)
+				if (PreTime > -5) PreTime--;
+				else if (Start_scene == false) Start_scene = true;
+			}
+			else if (PreTime < 16) PreTime++;
+			else
+			{
+				if (Time == 0 && PreTime < 25) PreTime = 25;
+				ButtonActive();
+				ReflectorPosition(ReflectorHead, (GetAsyncKeyState(VK_LEFT) & 0x8001), (GetAsyncKeyState(VK_RIGHT) & 0x8001), (GetAsyncKeyState(VK_UP) & 0x8001 || GetAsyncKeyState(VK_SPACE) & 0x8001), (GetAsyncKeyState(VK_DOWN) & 0x8001 || GetAsyncKeyState(VK_SHIFT) & 0x8001));
+				if (GameStart)
 				{
-					if (GetAsyncKeyState(VK_UP) & 0x8001 || GetAsyncKeyState(VK_SPACE) & 0x8001 && reflector.position < 1.55 && Age < 49) {
-						if (reflector.position < 1.5) reflector.position += 0.05;
-						reflector.position += 0.05;
+					if (Time == 0) OrbCreate(OrbHead, 0, 0, 0, 0.25);
+					if (Time == 0) {
+						OrbCreate(OrbHead, 2, 0, 0, 0);
+						OrbCreate(OrbHead, 2, 0, 0, 0.5);
+						OrbCreate(OrbHead, 2, 0, 0, 0.75);
 					}
-					else if (GetAsyncKeyState(VK_DOWN) & 0x8001 || GetAsyncKeyState(VK_CONTROL) & 0x8001 && reflector.position > 0.825 && Age < 49) {
-						if (reflector.position > 0.875) reflector.position -= 0.05;
-						reflector.position -= 0.05;
-					}
+					Time++;
+					CherenkovCheck();
+					CollisionDetect(OrbHead);
+					if (ReactorEffect > 5) GameOver();
+				}
+				else
+				{
+					OrbClear(OrbHead);
 				}
 			}
-			if (reflector.position > 1)	reflector.position -= 0.05;
-			if (reflector.position < 1)	reflector.position += 0.05;
 			break;
-		case 1:
-			if (pow(500, 2) > (pow(orb.x, 2) + pow(orb.y, 2))) {
-				if (Distancecmp(orb.x, orb.y, 316 / reflector.position) <= 0 && Distancecmp(orb.x, orb.y, 375 / reflector.position) > 0 && Age <= 0) {
-					orb = ReflectDetect(orb, reflector);
-				}
-			}
-			else if (orb.type == 1 || orb.effect == 1)
+		case 3:
+			if (ReactorEffect > 6) GameRestart();
+			else if (ReactorEffect == 6)
 			{
-				orb = ReactorReflect(orb);
-				if (orb.effect == 1) orb.effect = 0;
+				GeneralReset();
+				KillTimer(hWnd, 3);
+			}
+		case 5:				// 스타트 버튼 누르면 1초뒤에 문열리는 애니메이션
+			if (Start_scene)
+			{
+				if (PreTime > -25) PreTime--;
+				else if (rand() % 10 == 0) PreTime = 5;
 			}
 			else
 			{
-				orb = OrbReset(orb);
+				if (PreTime < 25) PreTime++;
+				else
+				{
+					SetTimer(hWnd, 0, 10, NULL);
+					KillTimer(hWnd, 5);
+				}
 			}
-			if (Age > 0)	Age--;
-
-			orb = OrbPosition(orb);
-
+			break;
+		case 100:			// -----엔드씬 추가부
+			if (PreTime > -5) PreTime--;
+			else
+			{
+				endscene = true;
+				PreTime = -25;
+				KillTimer(hWnd, 100);
+			}
 			break;
 		}
+
 		InvalidateRgn(hWnd, NULL, false);
 		break;
 
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 
-		SelectObject(mem2dc, BitReactor);
-		BitBlt(mem1dc, Pibot_x - window_size_y / 2, Pibot_y - window_size_y / 2, window_size_y + 15, window_size_y + 15, mem2dc, 0, 0, SRCCOPY);
+		//-----------------------------------------------------------------------------------------------------------------------------//
 
-		SelectObject(mem2dc, BitReflector);
-		//BitBlt(mem1dc, Pibot_x + (Reactor_radius / reflector.position) * cos(M_PI * 2 * reflector.angle) - Reflector_size_x / 2, Pibot_y + (Reactor_radius / reflector.position) * -sin(M_PI * 2 * reflector.angle) - Reflector_size_y / 2, Reflector_size_x, Reflector_size_y, mem2dc, 0, 0, SRCCOPY);
-		PlgBlt(mem1dc, P_Point, mem2dc, 0, 0, Reflector_size_x,
-			Reflector_size_y, NULL, NULL, NULL);
+		memdc = CreateCompatibleDC(hdc);
+		hBitmap = CreateCompatibleBitmap(hdc, (int)window_size_x, (int)window_size_y);
 
-		SelectObject(mem2dc, BitOrb);
-		BitBlt(mem1dc, Pibot_x + orb.x * window_size - Orb_radius, Pibot_y - orb.y * window_size - Orb_radius, Orb_size, Orb_size, mem2dc, 0, 0, SRCCOPY);
+		SelectObject(memdc, hBitmap);
+		SetStretchBltMode(memdc, COLORONCOLOR);
+		SetBkMode(memdc, TRANSPARENT);
 
-		BitBlt(hdc, 0, 0, window_size_x, window_size_y, mem1dc, 0, 0, SRCCOPY);
-
-		if (debug == true)
+		if (Start_scene)
 		{
-			MoveToEx(mem1dc, Pibot_x, 0, lpPoint);
-			LineTo(mem1dc, Pibot_x, window_size_y);
-			MoveToEx(mem1dc, 0, Pibot_y, lpPoint);
-			LineTo(mem1dc, window_size_x, Pibot_y);
-
-			swprintf(lpOut, 100, L"orb : %g ", orb.angle);
-			TextOut(hdc, 0, 0, lpOut, lstrlen(lpOut));
-			swprintf(lpOut, 100, L"relative : %g ", atan2(-orb.y, -orb.x) / M_PI / 2 + 0.5);
-			TextOut(hdc, 0, 25, lpOut, lstrlen(lpOut));
-			swprintf(lpOut, 100, L"reflector : %g ", reflector.angle);
-			TextOut(hdc, 0, 50, lpOut, lstrlen(lpOut));
-			swprintf(lpOut, 100, L"age : %d ", Age);
-			TextOut(hdc, 0, 75, lpOut, lstrlen(lpOut));
-			swprintf(lpOut, 100, L"score : %.0f ", Score);
-			TextOut(hdc, 0, 100, lpOut, lstrlen(lpOut));
+			// 스타트 씬 
+			DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
+			if (PreTime < 0) UIMenu(start_button, module_button, option_button, quit_button, EscMode);
 		}
+		else if (endscene)
+		{
+			DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
+			UIEndMessage();
+		}
+		else 
+		{
+			ReactorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
+			Reactor_EffectImg.Draw(memdc, Pibot_x - Reactor_half, Pibot_y - Reactor_half, Reactor_window, Reactor_window, Reactor_size* (ReactorEffect % 6), Reactor_size* (int)(ReactorEffect / 6), Reactor_size, Reactor_size);
+
+			Cherenkov_LeverImg.Draw(memdc, Pibot_x - (740 * window_size), Pibot_y - (100 * window_size), 200 * window_size, 200 * window_size, 200 * Cherenkov.lever, 0, 200, 200);
+
+			Button_PressureImg.Draw(memdc, Pibot_x - (861.5 * window_size), Pibot_y + (260 * window_size), 80 * window_size, 80 * window_size, 80 * (PNcmp(Button[1]) + 1), 0, 80, 80);
+			Button_PressureImg.Draw(memdc, Pibot_x - (718.5 * window_size), Pibot_y + (260 * window_size), 80 * window_size, 80 * window_size, 80 * (PNcmp(Button[2]) + 1), 0, 80, 80);
+			Button_OrbImg.Draw(memdc, Pibot_x + (653.5 * window_size), Pibot_y + (251 * window_size), 50 * window_size, 50 * window_size, 50 * (int)(Button[3] / 3), 0, 50, 50);
+			Button_OrbImg.Draw(memdc, Pibot_x + (796.5 * window_size), Pibot_y + (251 * window_size), 50 * window_size, 50 * window_size, 50 * (int)(Button[4] / 3), 50, 50, 50);
+
+			DisplayRotatedImage(-860, 0, 20, 110, Cherenkov.meter / 1500.0 - 1.0 / 3.0, 1);
+			DisplayRotatedImage(-700, -405, 14, 80, PressureCaculate(Mole, Temperture), 2);
+			DisplayRotatedImage(-821.5, 300, 80, 80, (Temperture - Kelvin) / (MaxTemp - Kelvin), 3);
+			DisplayRotatedImage(-678.5, 300, 80, 80, Mole / MaxPressure * Kelvin / 3 - 1.0 / 6.0, 4);
+			DisplayRotatedImage(-825, -355, 15, 190, 0, 5);
+
+			DisplayOrb(OrbHead);
+			DisplayReflector(ReflectorHead);
+
+			if (debug)	UIDebugInfo();
+			UIScore();
+			EffectPrint(EffectHead);
+
+			// 문 애니메이션 씬
+			if (PreTime < 0)
+			{
+				DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
+				if (int(PreTime * 0.2 + 1) & 1) UIMenu(true, false, false, false, false);
+			}
+			else if (PreTime <= 25) {
+				DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y,
+					Controllroom_size_x * (PreTime % 5), Controllroom_size_y * (int)(PreTime / 5), Controllroom_size_x, Controllroom_size_y); // 3000 * (PreTime % 5), 2000 * (int)(PreTime / 5)
+			}
+		}
+
+		BitBlt(hdc, 0, 0, (int)window_size_x, (int)window_size_y, memdc, 0, 0, SRCCOPY);
+
+		DeleteObject(hBitmap);
+		DeleteDC(memdc);
+
+		//-----------------------------------------------------------------------------------------------------------------------------//
 
 		EndPaint(hWnd, &ps);
 		break;
-
-
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
 	}
-
 	return DefWindowProc(hWnd, iMsg, wParam, lParam); //--- 위의 세 메시지 외의 나머지 메시지는 OS로
 }
+
+/*
+BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	HWND Button1 = GetDlgItem(hDlg, IDC_CHECK1);
+
+	switch (iMsg) {
+	case WM_INITDIALOG:
+		CheckRadioButton(hDlg, 1001, 1003, 1001);		//1001 부터 1015까지는 라디오 박스 번호
+		CheckRadioButton(hDlg, 1004, 1006, 1004);
+		CheckRadioButton(hDlg, 1007, 1009, 1007);
+		CheckRadioButton(hDlg, 1010, 1012, 1010);
+		CheckRadioButton(hDlg, 1013, 1015, 1013);
+		break;
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+
+		case IDOK: //--- 버튼
+			if (SendMessage(Button1, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				SendMessage(Button1, BM_SETCHECK, BST_CHECKED, 0);
+				//reflector_reverse = true;
+			}
+			else if (SendMessage(Button1, BM_GETCHECK, 0, 0) == BST_UNCHECKED) {
+				SendMessage(Button1, BM_SETCHECK, BST_UNCHECKED, 0);
+				//reflector_reverse = false;
+			}
+			EndDialog(hDlg, 0);
+			break;
+		case IDCANCEL: //--- 버튼
+			EndDialog(hDlg, 0);
+			break;
+		}
+		break;
+	case WM_CLOSE:
+		EndDialog(hDlg, 0);
+		break;
+	}
+	return 0;
+}
+*/
+

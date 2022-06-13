@@ -129,10 +129,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (Start_scene)
 		{
 			Mouse = MAKEPOINTS(lParam);
-			start_button = UIButtonSelected(-700, -135, 750, 150, Mouse);
+			start_button = (!EscMode && UIButtonSelected(-700, -135, 750, 150, Mouse));
 			module_button = UIButtonSelected(-700, 15, 750, 150, Mouse);
 			option_button = UIButtonSelected(-700, 165, 750, 150, Mouse);
-			quit_button = (!EscMode && UIButtonSelected(-700, 315, 750, 150, Mouse));
+			quit_button = UIButtonSelected(-700, 315, 750, 150, Mouse);
 		}
 		else
 		{
@@ -166,6 +166,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (Start_scene)
 		{
 			if (start_button) {
+				Start_scene = false;
+				PreTime = -25;
+			}
+			else if (module_button) {
 				if (EscMode)
 				{
 					EscMode = false;
@@ -173,29 +177,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else
 				{
-					Start_scene = false;
-					PreTime = -25;
+					// 모듈 클릭시 대화상자
+					//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
 				}
-			}
-			else if (module_button) {
-				// 모듈 클릭시 대화상자
-				//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
 			}
 			else if (option_button)
 			{
-				if (EscMode)
-				{
-					GeneralReset();
-					EscMode = false;
-					PreTime = 5;
-					Start_scene = true;
-					KillTimer(hWnd, 0);
-					SetTimer(hWnd, 5, 50, NULL);
-				}
 				// 옵션 클릭시 대화상자
 			}
 			else if (quit_button)
-				PostQuitMessage(0);
+			{
+				if (EscMode)
+				{
+					SetTimer(hWnd, 5, 50, NULL);
+				}
+				else PostQuitMessage(0);
+			}
 		}
 		else if (endscene)
 		{
@@ -228,7 +225,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		switch (wParam) {
 		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)http://www.silverwolf.co.kr/cplusplus/4842
-			
 			if (EscMode)
 			{
 				if (PreTime > -5) PreTime--;
@@ -246,7 +242,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 					Time++;
 					CherenkovCheck();
 					CollisionDetect(OrbHead);
-					if (ReactorEffect > 5) GameOver();
+					if (ReactorEffect > 5)
+					{
+						if (ReactorEffect < 15)
+						{
+							if (Time % 3 == 0)	ReactorEffect++;
+						}
+						else
+						{
+							ReactorEffect = 12;
+							Time = -1;
+							GameStart = false;
+							SetTimer(hWnd, 3, 10, NULL);
+						}
+					}
 				}
 				else
 				{
@@ -262,10 +271,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				KillTimer(hWnd, 3);
 			}
 		case 5:				// 스타트 버튼 누르면 1초뒤에 문열리는 애니메이션
-			if (Start_scene)
+			if (endscene)
+			{
+				PreTime = 5;
+				endscene = false;
+				Start_scene = true;
+			}
+			else if (EscMode)
+			{
+				KillTimer(hWnd, 0);
+				GeneralReset();
+				EscMode = false;
+				PreTime = 5;
+				Start_scene = true;
+			}
+			else if (Start_scene)
 			{
 				if (PreTime > -25) PreTime--;
-				else if (rand() % 10 == 0) PreTime = 5;
+				else if (rand() % 50 == 0) PreTime = 5;
 			}
 			else
 			{
@@ -278,12 +301,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case 100:			// -----엔드씬 추가부
-			if (PreTime > -5) PreTime--;
+			if (endscene)
+			{
+				if (PreTime > -5) PreTime--;
+				else
+				{
+					PreTime = -25;
+					KillTimer(hWnd, 100);
+				}
+			}
 			else
 			{
 				endscene = true;
-				PreTime = -25;
-				KillTimer(hWnd, 100);
+				PreTime == 25;
+				KillTimer(hWnd, 0);
 			}
 			break;
 		}

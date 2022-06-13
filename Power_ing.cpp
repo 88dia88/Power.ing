@@ -243,11 +243,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				if (GameStart)
 				{
 					if (Time == 0) OrbCreate(OrbHead, 0, 0, 0, 0.25);
-					if (Time == 0) {
-						OrbCreate(OrbHead, 2, 0, 0, 0);
-						OrbCreate(OrbHead, 2, 0, 0, 0.5);
-						OrbCreate(OrbHead, 2, 0, 0, 0.75);
-					}
 					Time++;
 					CherenkovCheck();
 					CollisionDetect(OrbHead);

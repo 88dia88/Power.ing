@@ -312,9 +312,9 @@ void UIMenu(bool Start, bool Module, bool Option, bool Quit, bool Esc)
 	oldFont = (HFONT)SelectObject(memdc, hFont);
 	if (Esc)
 	{
-		UIButton(-650, -125, 255, 255, 255, 0, 255, 255, Start, L"Resume");
-		UIButton(-650, 25, 0, 255, 0, 0, 255, 255, Module, L"Options");
-		UIButton(-650, 175, 255, 255, 0, 255, 0, 0, Option, L"Quit To Main Menu");
+		UIButton(-650, 25, 255, 255, 255, 0, 255, 255, Module, L"Resume");
+		UIButton(-650, 175, 0, 255, 0, 0, 255, 255, Option, L"Options");
+		UIButton(-650, 325, 255, 255, 0, 255, 0, 0, Quit, L"Quit To Main Menu");
 	}
 	else
 	{

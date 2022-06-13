@@ -217,10 +217,10 @@ void DisplayOrb(struct Power_Orb* Orb)
 {
 	if (Orb->next != OrbHead)
 	{
-		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 0, 0, Orb_size, Orb_size, 2 * (Orb->next->effect_count - i));
-		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 50, 0, Orb_size, Orb_size, 2 * (Orb->next->effect_count - i));
-		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 100, 0, Orb_size, Orb_size, 2 * (Orb->next->effect_count - i));
-		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 150, 0, Orb_size, Orb_size, 2 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 0, 0, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 50, 0, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 100, 0, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 150, 0, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
 		switch (Orb->next->type)
 		{
 		case 0:

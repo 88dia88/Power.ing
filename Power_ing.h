@@ -6,30 +6,36 @@
 #include <tchar.h>
 #include <atlImage.h>
 #include "Power_Math.h"
+#include "resource.h"
 //--------------------------------------------------------------------------------------------------------------//
 extern HINSTANCE g_hInst;
 extern LPCTSTR lpszClass, lpszWindowName;
 
-extern const bool debug, keyboard;
-extern const double window_size, window_half, window_size_x, window_size_y, Pibot_x, Pibot_y;
+extern const bool debug, keyboard, ChargedMod;
 
-extern const double Reactor_size, Rail_size, Orb_size;
-extern const double Controllroom_size_x, Reflector_size_x;
-extern const double Controllroom_size_y, Reflector_size_y;
+extern int Reflector1Left, Reflector1Right, Reflector1Up, Reflector1Down, Player1RGB[3], Player1Charge[3];
 
-extern const double Reactor_window, Rail_window, Orb_window;
-extern const double Controllroom_window_x, Reflector_window_x;
-extern const double Controllroom_window_y, Reflector_window_y;
+extern double window_half, window_size_x, window_size_y, Pibot_x, Pibot_y;
+extern double window_size;
 
-extern const double Reactor_half, Rail_half, Orb_half;
-extern const double Controllroom_half_x, Reflector_half_x;
-extern const double Controllroom_half_y, Reflector_half_y;
+extern double Reactor_size, Rail_size, Orb_size;
+extern double Controllroom_size_x, Reflector_size_x;
+extern double Controllroom_size_y, Reflector_size_y;
+
+extern int Reactor_window, Rail_window, Orb_window;
+extern int Controllroom_window_x, Reflector_window_x;
+extern int Controllroom_window_y, Reflector_window_y;
+
+extern int Reactor_half, Rail_half, Orb_half;
+extern int Controllroom_half_x, Reflector_half_x;
+extern int Controllroom_half_y, Reflector_half_y;
 
 extern HDC hdc, memdc;
 extern HBITMAP hBitmap;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMessage, WPARAM wparam, LPARAM lparam);
-BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK Module_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 //--------------------------------------------------------------------------------------------------------------//
 // 
 // Power_Orb
@@ -37,7 +43,7 @@ BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 //--------------------------------------------------------------------------------------------------------------//
 struct Power_Cherenkov
 {
-	bool cherenkov;
+	bool cherenkov, levertrigger;
 	int meter, counter, lever;
 };
 struct Power_Effect
@@ -58,13 +64,14 @@ struct Power_Orb
 struct Power_Reflector
 {
 	double angle, position, size, speed;
-	int module[5], age, effect;
+	int module[5], module_priority[3], age, effect;
+	bool module_charged[5];
 	// 0.1 - accellator, 0.2 - deccellator || 1.1 double 1.2 triple || 2.1 spliter, 2.2 launcher || 3.1 gear, 3.2 magnet || 4.1 reserver, 4.2  // 
 	struct Power_Reflector* next;
 };
 extern bool GameStart;
 extern double Score, Temperture, Mole;
-extern int Time, PreTime, ReactorEffect, Button[5];
+extern int Time, PreTime, ReactorEffect, Button[5], OrbType, Orbcount;
 extern struct Power_Cherenkov Cherenkov;
 extern struct Power_Orb* OrbHead;
 extern struct Power_Reflector* ReflectorHead;
@@ -72,7 +79,6 @@ extern struct Power_Reflector* ReflectorHead;
 void CherenkovCheck();
 void GeneralReset();
 void GameRestart();
-void GameOver();
 void ButtonActive();
 //--------------------------------------------------------------------------------------------------------------//
 bool PressureCheck();
@@ -80,17 +86,18 @@ bool PressureCheck();
 struct Power_Orb* OrbPosition(struct Power_Orb* Orb);
 struct Power_Orb* OrbSpeed(struct Power_Orb* Orb);
 void CollisionDetect(struct Power_Orb* Orb);
-void OrbCreate(struct Power_Orb* Orb, int Type, double x, double y, double Angle);
+bool OrbMajorCheck(struct Power_Orb* Orb);
+void OrbCreate(struct Power_Orb* Orb, int Type, bool Major, double x, double y, double Angle);
 void OrbRemove(struct Power_Orb* NextOrb, struct Power_Orb* Orb);
 void OrbClear(struct Power_Orb* Orb);
-struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, double x, double y, double Angle);
+struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, bool Major, double x, double y, double Angle);
 //--------------------------------------------------------------------------------------------------------------//
 void ReflectDetect(struct Power_Orb* Orb, struct Power_Reflector* Reflector);
 void ReflectReflector(struct Power_Orb* Orb, struct Power_Reflector* Reflector);
 struct Power_Orb* ReflectReflectorOrb(struct Power_Orb* Orb, struct Power_Reflector* Reflector);
 struct Power_Orb* ReflectOrb(struct Power_Orb* Orb, double Angle);
 //--------------------------------------------------------------------------------------------------------------//
-void ReflectorPosition(struct Power_Reflector* Reflector, bool Left, bool Right, bool Up, bool Down);
+void ReflectorPosition(struct Power_Reflector* Reflector, short Left, short Right, short Up, short Down);
 void ReflectorCreate(struct Power_Reflector* Reflector, int Count);
 void ReflectorRemove(struct Power_Reflector* NextReflector, struct Power_Reflector* Reflector);
 void ReflectClear(struct Power_Reflector* Reflector);
@@ -101,8 +108,10 @@ struct Power_Reflector* ReflectorApply(struct Power_Reflector* Reflector, int Co
 // Power_Display
 // 
 //--------------------------------------------------------------------------------------------------------------//
-extern CImage ReactorImg, ReflectorImg, OrbImg, PressureImg, CherenkovImg, Reactor_EffectImg, Reflector_EffectImg, Reflector_Mask_Img, Reflector_Effect_Mask_Img;
-extern CImage Button_PressureImg, Button_DialImg, Button_ValveImg, Button_OrbImg, Cherenkov_LeverImg, TempertureImg, DoorImg, Orb_After_Img;
+extern CImage ReactorImg, Reactor_EffectImg, ReflectorImg, Reflector_EffectImg, OrbImg, PressureImg, CherenkovImg;
+extern CImage Reflector_Mask_Img, Reflector_Effect_Mask_Img, Reflector_Color_Mask_Img, Reflector_Light_Mask_Img;
+extern CImage Reactor_RailImg, Reflector_ColorImg, Reflector_LightImg, Reflector_ColorChargeImg, Reflector_LightChargeImg, Reflector_ColorOffImg, Reflector_LightOffImg;
+extern CImage Button_PressureImg, Button_DialImg, Button_ValveImg, Button_OrbImg, Cherenkov_LeverImg, TempertureImg, DoorImg;
 extern CImage Pressure_Mask_Img, Cherenkov_Mask_Img, Button_Valve_Mask_Img, Button_Dial_Mask_Img, Temperture_Mask_Img;
 extern CImage Reflector_Module1_Img, Reflector_Module2_Img, Reflector_Module3_Img, Reflector_Module4_Img, Reflector_Module5_Img;
 extern CImage Reflector_Module1_Mask_Img, Reflector_Module2_Mask_Img, Reflector_Module3_Mask_Img, Reflector_Module4_Mask_Img, Reflector_Module5_Mask_Img;
@@ -113,6 +122,8 @@ void RemoveEffect(struct Power_Effect* Effect, struct Power_Effect* NextEffect);
 void EffectPrint(struct Power_Effect* Effect);
 //--------------------------------------------------------------------------------------------------------------//
 void DisplayLoad();
+void DisplayWindow();
+void DisplayColorApply();
 void Display();
 //--------------------------------------------------------------------------------------------------------------//
 void DisplayOrb(struct Power_Orb* Orb);

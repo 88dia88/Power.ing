@@ -1,15 +1,14 @@
 #include "Power_ing.h"
 
-const double window_size = 1;
+double window_size = 0.96;
 const bool debug = true, keyboard = true, ChargedMod = false;
 int Reflector1Left = 0x25;
 int Reflector1Right = 0X27;
 int Reflector1Up = 0X26;
 int Reflector1Down = 0X28;
 
-int Player1RGB[3] = {255,255,0};
-
-int Player1Charge[3] = { 1,2,3 };
+int Player1RGB[3] = {255, 255, 0};
+int Player1Charge[3] = {1,2,3};
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Power.ing";
@@ -37,9 +36,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hprevlnstance, LPSTR lpszCmdPa
 	WndClass.lpszClassName = lpszClass;
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 	RegisterClassEx(&WndClass);
-	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-		| WS_MAXIMIZEBOX | WS_MINIMIZEBOX, 0, 0, (int)(window_size_x + 15), (int)(window_size_y + 40),
-		NULL, (HMENU)NULL, hInstance, NULL);
+	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_POPUP, 0, 0, (int)(window_size_x), (int)(window_size_y),
+		NULL, (HMENU)NULL, hInstance, NULL); //WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX |
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 	while (GetMessage(&Message, 0, 0, 0)) {

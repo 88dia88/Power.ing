@@ -188,12 +188,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				else
 				{
 					// 모듈 클릭시 대화상자
-					//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
+					DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Module_Proc);
 				}
 			}
 			else if (option_button)
 			{
 				// 옵션 클릭시 대화상자
+				DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG2), hWnd, (DLGPROC)&Option_Proc);
 			}
 			else if (quit_button)
 			{
@@ -412,10 +413,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, iMsg, wParam, lParam); //--- 위의 세 메시지 외의 나머지 메시지는 OS로
 }
 
-/*
-BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+BOOL CALLBACK Module_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
-	HWND Button1 = GetDlgItem(hDlg, IDC_CHECK1);
 
 	switch (iMsg) {
 	case WM_INITDIALOG:
@@ -428,6 +427,74 @@ BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 
+		case IDOK:
+			break;
+		case IDCANCEL:
+			EndDialog(hDlg, 0);
+			break;
+		}
+		break;
+	case WM_CLOSE:
+		EndDialog(hDlg, 0);
+		break;
+	}
+	return 0;
+}
+
+BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+
+	HWND Button1 = GetDlgItem(hDlg, IDC_CHECK1);
+
+	switch (iMsg) {
+	case WM_INITDIALOG:
+		CheckRadioButton(hDlg, IDC_RADIO20, IDC_RADIO22, IDC_RADIO20);		//1001 부터 1003까지는 라디오 박스 번호
+		break;
+
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+		case IDC_RADIO20:
+			window_size = 0.96;
+			break;
+		
+		case IDC_RADIO21:
+			window_size = 0.96 / 1.25;
+			break;
+
+		case IDC_RADIO22:
+			window_size = 0.96 / 1.5;
+			break;
+
+		case IDC_RADIO23:		// 빨강	 R, G, B
+			Player1RGB[0] = 255;	
+			Player1RGB[1] = 0;
+			Player1RGB[2] = 0;
+			break;
+		case IDC_RADIO24:		// 파랑
+			Player1RGB[0] = 0;
+			Player1RGB[1] = 0;
+			Player1RGB[2] = 255;
+			break;
+		case IDC_RADIO25:		// 녹색
+			Player1RGB[0] = 0;
+			Player1RGB[1] = 255;
+			Player1RGB[2] = 0;
+			break;
+		case IDC_RADIO26:		// 자홍
+			Player1RGB[0] = 255;
+			Player1RGB[1] = 0;
+			Player1RGB[2] = 255;
+			break;
+		case IDC_RADIO27:		// 청록
+			Player1RGB[0] = 0;
+			Player1RGB[1] = 255;
+			Player1RGB[2] = 255;
+			break;
+		case IDC_RADIO28:		// 노랑
+			Player1RGB[0] = 255;
+			Player1RGB[1] = 255;
+			Player1RGB[2] = 0;
+			break;
 		case IDOK: //--- 버튼
 			if (SendMessage(Button1, BM_GETCHECK, 0, 0) == BST_CHECKED) {
 				SendMessage(Button1, BM_SETCHECK, BST_CHECKED, 0);
@@ -437,6 +504,9 @@ BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				SendMessage(Button1, BM_SETCHECK, BST_UNCHECKED, 0);
 				//reflector_reverse = false;
 			}
+			//해상도 버튼 - 라디오		현재 1 -> 1,  0.6 , 0.8
+			DisplayWindow();		// 이미지 다시 불러오기
+			DisplayColorApply();	// 컬러 다시 불러오기
 			EndDialog(hDlg, 0);
 			break;
 		case IDCANCEL: //--- 버튼
@@ -448,7 +518,7 @@ BOOL CALLBACK Dlalog_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		EndDialog(hDlg, 0);
 		break;
 	}
+
 	return 0;
 }
-*/
 

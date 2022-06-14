@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------//
 bool GameStart;
 double Score, Temperture, Mole;
-int Time, PreTime, ReactorEffect, Button[5], OrbType;
+int Time, PreTime, ReactorEffect, Button[5], OrbType, Orbcount;
 struct Power_Cherenkov Cherenkov;
 struct Power_Orb* OrbHead = (Power_Orb*)malloc(sizeof(struct Power_Orb));
 struct Power_Reflector* ReflectorHead = (Power_Reflector*)malloc(sizeof(struct Power_Reflector));
@@ -84,7 +84,7 @@ struct Power_Orb* OrbPosition(struct Power_Orb* Orb)
 		Orb->x += Orb->speedx;
 		Orb->y += Orb->speedy;
 	}
-	//--------------------------------ì˜¤ë¸Œ ìž”ìƒ ë§¤ë²ˆ ë°°ì—´ì— ìœ„ì¹˜ê°’ ë„£ê¸°
+	//--------------------------------¿Àºê ÀÜ»ó ¸Å¹ø ¹è¿­¿¡ À§Ä¡°ª ³Ö±â
 
 	if (Orb->major)
 	{

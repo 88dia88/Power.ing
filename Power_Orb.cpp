@@ -50,7 +50,7 @@ void GeneralReset()
 }
 void GameRestart()
 {
-	Cherenkov.meter -= Cherenkov.meter / (31 + Time);
+	Cherenkov.meter -= Cherenkov.meter / (31.0 + Time);
 	Score -= Score / (31.0 + Time);
 	Temperture -= (Temperture - Kelvin) / (31.0 + Time);
 	Mole -= (Mole - MaxMole / 2) / (31.0 + Time);
@@ -182,11 +182,14 @@ struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, bool Major, double x
 	{
 		switch (Type)
 		{
-		case 0:
-			Orb->power = 2, Orb->size = 25, Orb->type = 0, Orb->effect = 0;
-			break;
 		case 1:
-			Orb->power = 1.5, Orb->size = 25, Orb->type = 1, Orb->effect = 0;
+			Orb->power = 1.5, Orb->size = 25, Orb->effect = 0;
+			break;
+		case 2:
+			Orb->power = 2, Orb->size = 30, Orb->effect = 0;
+			break;
+		default:
+			Orb->power = 2, Orb->size = 25, Orb->effect = 0;
 			break;
 		}
 	}
@@ -194,14 +197,14 @@ struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, bool Major, double x
 	{
 		switch (Type)
 		{
-		case 0:
-			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
-			break;
 		case 1:
-			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
+			Orb->power = 2, Orb->size = 18.75, Orb->effect = 0;
 			break;
 		case 2:
-			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
+			Orb->power = 2, Orb->size = 18.75, Orb->effect = 0;
+			break;
+		default:
+			Orb->power = 2, Orb->size = 18.75, Orb->effect = 0;
 			break;
 		}
 	}
@@ -233,30 +236,34 @@ void ReflectReflector(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 			{
 				if (Reflector->module_charged[4])
 				{
-					OrbCreate(OrbHead, 1 + rand() & 1, false, Orb->next->x, Orb->next->y, Reflector->angle - 0.5 + 0.25 * (1 - 2 * rand() & 1));
+					OrbCreate(OrbHead, Reflector->module[4], false, Orb->next->x, Orb->next->y, Reflector->angle - 0.25 * (1 - 2 * rand() & 1));
 					Reflector->module_charged[4] = false;
 				}
-				else OrbCreate(OrbHead, 0, false, Orb->next->x, Orb->next->y, Reflector->angle - 0.5 + 0.25 * (1 - 2 * rand() & 1));
+				else OrbCreate(OrbHead, 0, false, Orb->next->x, Orb->next->y, Reflector->angle - 0.25 * (1 - 2 * rand() & 1));
 			}
-
 			ReflectReflectorOrb(Orb->next, Reflector);
-			int score;
+			int score, Energy = 1, Cherenks = 1;
+			if (Reflector->module_charged[2])
+			{
+				if (Reflector->module_charged[2] == 2) Cherenks = 1.5;
+				else Energy = 1.25;
+			}
 			switch (Orb->next->type)
 			{
 			case 1:
-				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1 * Energy, Cherenkov.cherenkov);
 				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 0.5, Cherenkov.cherenkov);
-				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125;
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125 * Cherenks;
 				break;
 			case 2:
-				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.0125, Cherenkov.cherenkov);
-				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 0.75, Cherenkov.cherenkov);
-				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 100 * Orb->next->speed * Orb->next->speed;
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.0125 * Energy, Cherenkov.cherenkov);
+				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 0.75 * Energy, Cherenkov.cherenkov);
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 100 * Orb->next->speed * Orb->next->speed * Cherenks;
 				break;
 			default:
-				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.35, Cherenkov.cherenkov);
-				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
-				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125;
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.35 * Energy, Cherenkov.cherenkov);
+				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1 * Energy, Cherenkov.cherenkov);
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125 * Cherenks;
 				break;
 			}
 			CreateEffect(EffectHead, Orb->next->x, Orb->next->y, score);
@@ -274,19 +281,12 @@ void ReflectReflector(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 		switch (Orb->next->type)
 		{
 		case 0:
-			if (Reflector->module[0] == 0 || Reflector->module_charged[0])
-			{
-				for (int i = 0; i < 3; i++)
-				{
-					if (Reflector->module[Reflector->module_priority[i]] != 0 && Reflector->module_charged[Reflector->module_priority[i]] == false)
-					{
-						Reflector->module_charged[Reflector->module_priority[i]] = true;
-						break;
-					}
-					else if (Reflector->module[4] != 0 && i == 2) Reflector->module_charged[4] = true;
-				}
-			}
-			else Reflector->module_charged[0] = true;
+			if (Reflector->module[0] != 0 && Reflector->module_charged[0] == false) Reflector->module_charged[0] = true;
+			else if (ReflectorHead->next->module[1] != 0 && ReflectorHead->next->module_charged[1] == false) ReflectorHead->next->module_charged[1] = true;
+			else if (Reflector->module[2] != 0 && Reflector->module_charged[2] == false) Reflector->module_charged[2] = true;
+			else if (Reflector->module[3] != 0 && Reflector->module_charged[3] == false) Reflector->module_charged[3] = true;
+			else if (Reflector->module[4] != 0 && Reflector->module_charged[4] == false) Reflector->module_charged[4] = true;
+			else Score += OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
 			break;
 		case 1:
 			if (Temperture < MaxTemp - 1)	Temperture++;
@@ -302,10 +302,10 @@ void ReflectReflector(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 }
 struct Power_Orb* ReflectReflectorOrb(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 {
-	if (Reflector->module_charged[1])
+	if (Reflector->module_charged[3])
 	{
-		if (Reflector->module[1] == 1) Orb->power += 0.1;
-		else if (Reflector->module[1] == 2) Orb->power -= 0.1;
+		if (Reflector->module[3] == 1) Orb->power += 0.1;
+		else if (Reflector->module[3] == 2) Orb->power -= 0.1;
 	}
 	ReflectOrb(Orb, Reflector->angle);
 	OrbPosition(Orb);
@@ -334,9 +334,10 @@ void ReflectorPosition(struct Power_Reflector* Reflector, short Left, short Righ
 		double Break = 1;
 		if ((Up & 0x8001) || (Down & 0x8001) || (Up & 0x8000) || (Down & 0x8000) && Reflector->next->position < 455 && Reflector->next->position > 270)
 		{
-			if (Reflector->next->module_charged[2])
+			if (ReflectorHead->next->module_charged[1])
 			{
-				switch (Reflector->next->module[2])
+				if (Reflector->next->module_charged[1] == false) Reflector->next->module_charged[1] = true;
+				switch (ReflectorHead->next->module[1])
 				{
 				case 1:
 					if ((Up & 0x8000) && Reflector->next->speed < 2) Reflector->next->speed += 0.5;
@@ -396,15 +397,12 @@ void ReflectClear(struct Power_Reflector* Reflector)
 struct Power_Reflector* ReflectorReset(struct Power_Reflector* Reflector)
 {
 	ReflectClear(ReflectorHead);
-	Reflector->module[0] = 2, Reflector->module[1] = 1, Reflector->module[2] = 2, Reflector->module[3] = 0, Reflector->module[4] = 0;
+	Reflector->module[0] = 2, Reflector->module[1] = 2, Reflector->module[2] = 1, Reflector->module[3] = 1, Reflector->module[4] = 1;
 	for (int i = 0; i < 5; i++)
 	{
 		if (Reflector->module[i] != 0) Reflector->module_charged[i] = ChargedMod;
 		else Reflector->module_charged[i] = false;
 	}
-	Reflector->module_priority[0] = Player1Charge[0];
-	Reflector->module_priority[1] = Player1Charge[1];
-	Reflector->module_priority[2] = Player1Charge[2];
 	Reflector->position = 375, Reflector->size = 375, Reflector->speed = 1, Reflector->age = -100, Reflector->effect = 0;
 	if (Reflector->module[0] & 1) Reflector->angle = 0;
 	else Reflector->angle = 0.25;
@@ -423,9 +421,6 @@ struct Power_Reflector* ReflectorApply(struct Power_Reflector* Reflector, int Co
 		Reflector->module_charged[i] = ReflectorHead->module_charged[i];
 	}
 	if (Count == 0) Reflector->module_charged[0] = true;
-	Reflector->module_priority[0] = Player1Charge[0];
-	Reflector->module_priority[1] = Player1Charge[1];
-	Reflector->module_priority[2] = Player1Charge[2];
 	Reflector->angle = ReflectorHead->angle + Count / (Reflector->module[0] + 1.0);
 	return Reflector;
 }

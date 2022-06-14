@@ -456,7 +456,7 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		case IDC_RADIO20:
 			window_size = 0.96;
 			break;
-		
+
 		case IDC_RADIO21:
 			window_size = 0.96 / 1.25;
 			break;
@@ -466,7 +466,7 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDC_RADIO23:		// 빨강	 R, G, B
-			Player1RGB[0] = 255;	
+			Player1RGB[0] = 255;
 			Player1RGB[1] = 0;
 			Player1RGB[2] = 0;
 			break;
@@ -521,4 +521,3 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
-

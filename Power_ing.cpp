@@ -72,7 +72,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		OrbHead->next = OrbHead;
 		ReflectorHead->next = ReflectorHead;
 		ReflectorHead = ReflectorReset(ReflectorHead);
-		ReflectorCreate(ReflectorHead, 0);
 		GeneralReset();
 		PreTime = -25;
 		DisplayLoad();
@@ -260,7 +259,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 					CollisionDetect(OrbHead);
 					if (ReactorEffect > 5)
 					{
-						OrbClear(OrbHead);
 						if (ReactorEffect < 15)
 						{
 							if (Time % 3 == 0)	ReactorEffect++;
@@ -289,6 +287,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				PreTime = 5;
 				endscene = false;
 				Start_scene = true;
+				ReflectorClear(ReflectorHead);
 			}
 			else if (EscMode)
 			{
@@ -297,6 +296,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				EscMode = false;
 				PreTime = 5;
 				Start_scene = true;
+				ReflectorClear(ReflectorHead);
 			}
 			else if (Start_scene)
 			{
@@ -308,6 +308,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				if (PreTime < 25) PreTime++;
 				else
 				{
+					ReflectorCreate(ReflectorHead, 0);
 					SetTimer(hWnd, 0, 10, NULL);
 					KillTimer(hWnd, 5);
 				}
@@ -426,8 +427,40 @@ BOOL CALLBACK Module_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
-
+		case IDC_RADIO1: ReflectorHead->module[0] = 0;
+			break;
+		case IDC_RADIO2: ReflectorHead->module[0] = 1;
+			break;
+		case IDC_RADIO3: ReflectorHead->module[0] = 2;
+			break;
+		case IDC_RADIO4: ReflectorHead->module[1] = 0;
+			break;
+		case IDC_RADIO5: ReflectorHead->module[1] = 1;
+			break;
+		case IDC_RADIO6: ReflectorHead->module[1] = 2;
+			break;
+		case IDC_RADIO7: ReflectorHead->module[2] = 0;
+			break;
+		case IDC_RADIO8: ReflectorHead->module[2] = 1;
+			break;
+		case IDC_RADIO9: ReflectorHead->module[2] = 2;
+			break;
+		case IDC_RADIO10: ReflectorHead->module[3] = 0;
+			break;
+		case IDC_RADIO11: ReflectorHead->module[3] = 1;
+			break;
+		case IDC_RADIO12: ReflectorHead->module[3] = 2;
+			break;
+		case IDC_RADIO13: ReflectorHead->module[4] = 0;
+			break;
+		case IDC_RADIO14: ReflectorHead->module[4] = 1;
+			break;
+		case IDC_RADIO15: ReflectorHead->module[4] = 2;
+			break;
+		
 		case IDOK:
+			
+			EndDialog(hDlg, 0);
 			break;
 		case IDCANCEL:
 			EndDialog(hDlg, 0);
@@ -456,7 +489,7 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		case IDC_RADIO20:
 			window_size = 0.96;
 			break;
-		
+
 		case IDC_RADIO21:
 			window_size = 0.96 / 1.25;
 			break;
@@ -466,7 +499,7 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDC_RADIO23:		// 빨강	 R, G, B
-			Player1RGB[0] = 255;	
+			Player1RGB[0] = 255;
 			Player1RGB[1] = 0;
 			Player1RGB[2] = 0;
 			break;
@@ -521,4 +554,3 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
-

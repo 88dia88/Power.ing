@@ -63,14 +63,12 @@ bool DistanceDetect(double x, double y, double Angle, double Distance, double Si
 	return (x * x + y * y > (Distance * Distance - Size * Size * 0.25) / (cos(Angle * M_TU) * cos(Angle * M_TU)));
 }
 bool AngleDetect(double x, double y, double Angle)
-{
-	Angle = AnglePosition(x, y) - Angle + 1;
-	Angle -= (int)Angle;
-	return (Angle <= 0.25) || (0.75 <= Angle);
+{	
+	Angle = AngleOverflow(AnglePosition(x, y) - Angle);
+	return (Angle < 0.13) || (0.87 < Angle);
 }
 bool ObtuseDetect(double Angle)
 {
-	Angle ++;
-	Angle -= (int)Angle;
+	AngleOverflow(Angle);
 	return ((0.125 < Angle && Angle <= 0.25) || (0.75 <= Angle && Angle < 0.875));
 }

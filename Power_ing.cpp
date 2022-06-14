@@ -478,10 +478,17 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 
 	HWND Button1 = GetDlgItem(hDlg, IDC_CHECK1);
+	HWND Button2 = GetDlgItem(hDlg, IDC_CHECK2);
+	HWND Button3 = GetDlgItem(hDlg, IDC_CHECK3);
+	HWND Button4 = GetDlgItem(hDlg, IDC_CHECK4);
 
 	switch (iMsg) {
 	case WM_INITDIALOG:
 		CheckRadioButton(hDlg, IDC_RADIO20, IDC_RADIO22, IDC_RADIO20);		//1001 부터 1003까지는 라디오 박스 번호
+		//bool debug = true, keyboard = true, ChargedMod = false;
+		if (debug == true) SendMessage(Button2, BM_SETCHECK, BST_CHECKED, 0);
+		if (keyboard == true) SendMessage(Button3, BM_SETCHECK, BST_CHECKED, 0);
+		if (ChargedMod == true) SendMessage(Button4, BM_SETCHECK, BST_CHECKED, 0);
 		break;
 
 	case WM_COMMAND:
@@ -537,6 +544,17 @@ BOOL CALLBACK Option_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				SendMessage(Button1, BM_SETCHECK, BST_UNCHECKED, 0);
 				//reflector_reverse = false;
 			}
+			//bool debug = true, keyboard = true, ChargedMod = false;
+			// -------------------------------- 06-14일 마지막 추가부분 옵션 bool값 3종 체크박스
+			if (SendMessage(Button2, BM_GETCHECK, 0, 0) == BST_CHECKED) debug = true;
+			else debug = false;
+
+			if (SendMessage(Button3, BM_GETCHECK, 0, 0) == BST_CHECKED) keyboard = true;
+			else keyboard = false;
+
+			if (SendMessage(Button4, BM_GETCHECK, 0, 0) == BST_CHECKED) ChargedMod = true;
+			else ChargedMod = false;
+			
 			//해상도 버튼 - 라디오		현재 1 -> 1,  0.6 , 0.8
 			DisplayWindow();		// 이미지 다시 불러오기
 			DisplayColorApply();	// 컬러 다시 불러오기

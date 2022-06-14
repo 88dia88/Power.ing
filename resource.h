@@ -29,6 +29,9 @@
 #define IDC_RADIO26                     1024
 #define IDC_RADIO27                     1025
 #define IDC_RADIO28                     1026
+#define IDC_CHECK2                      1027
+#define IDC_CHECK3                      1028
+#define IDC_CHECK4                      1029
 
 // Next default values for new objects
 // 
@@ -36,7 +39,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1027
+#define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

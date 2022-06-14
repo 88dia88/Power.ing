@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------------//
 bool GameStart;
 double Score, Temperture, Mole;
-int Time, PreTime, ReactorEffect, Button[5];
+int Time, PreTime, ReactorEffect, Button[5], OrbType;
 struct Power_Cherenkov Cherenkov;
 struct Power_Orb* OrbHead = (Power_Orb*)malloc(sizeof(struct Power_Orb));
 struct Power_Reflector* ReflectorHead = (Power_Reflector*)malloc(sizeof(struct Power_Reflector));
@@ -23,7 +23,7 @@ void CherenkovCheck()
 	}
 	else
 	{
-		if (Cherenkov.meter < 875 && Cherenkov.lever > 0 && Time % 3 == 0) Cherenkov.lever--;
+		if (Cherenkov.levertrigger == false && Cherenkov.lever > 0 && Time % 3 == 0) Cherenkov.lever--;
 		if (Cherenkov.lever == 6) (Cherenkov.cherenkov = true);
 		if (ReactorEffect > 0 && ReactorEffect < 6 && Time % 3 == 0)
 		{
@@ -57,18 +57,6 @@ void GameRestart()
 	if (Time % 5 == 0) ReactorEffect--;
 	Time--;
 }
-void GameOver()
-{
-	if (ReactorEffect < 11)
-	{
-		if (Time % 3 == 0)	ReactorEffect++;
-	}
-	else
-	{
-		Time = -1;
-		GameStart = false;
-	}
-}
 void ButtonActive()
 {
 	if ((Button[1] < 0 && Temperture + Button[1] > Kelvin) || (Button[1] > 0 && Temperture + Button[1] < MaxTemp && PressureCaculate(Mole, Temperture + Button[1]) < 1)) Temperture += Button[1];
@@ -96,7 +84,7 @@ struct Power_Orb* OrbPosition(struct Power_Orb* Orb)
 		Orb->x += Orb->speedx;
 		Orb->y += Orb->speedy;
 	}
-	//--------------------------------¿Àºê ÀÜ»ó ¸Å¹ø ¹è¿­¿¡ À§Ä¡°ª ³Ö±â
+	//--------------------------------ì˜¤ë¸Œ ìž”ìƒ ë§¤ë²ˆ ë°°ì—´ì— ìœ„ì¹˜ê°’ ë„£ê¸°
 
 	if (Orb->major)
 	{
@@ -138,35 +126,40 @@ void CollisionDetect(struct Power_Orb* Orb)
 		OrbPosition(Orb->next);
 		if (DistanceOvercmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, 500))
 		{
-			if ((Orb->next->type == 1 || Orb->next->effect == 1) && Distancecmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, 525))
+			if (((Orb->next->major == false && Orb->next->type == 0) || Orb->next->effect == 1) && Distancecmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, 525))
 			{
 				ReflectOrb(Orb->next, AnglePosition(Orb->next->x, Orb->next->y));
 				if (Orb->next->effect == 1) Orb->next->effect = 0;
 			}
 			else
 			{
-				if (Orb->next->major)
-				{
-					OrbClear(OrbHead);
-					ReactorEffect = 6;
-				}
 				OrbRemove(Orb->next, Orb);
+				if (OrbMajorCheck(OrbHead)) ReactorEffect = 6;
 			}
 		}
 		CollisionDetect(Orb->next);
 	}
 	else return;
 }
-void OrbCreate(struct Power_Orb* Orb, int Type, double x, double y, double Angle)
+bool OrbMajorCheck(struct Power_Orb* Orb)
+{
+	if (Orb->next != OrbHead)
+	{
+		if (Orb->next->major) return false;
+		else OrbMajorCheck(Orb->next);
+	}
+	else return true;
+}
+void OrbCreate(struct Power_Orb* Orb, int Type, bool Major, double x, double y, double Angle)
 {
 	if (Orb->next == OrbHead)
 	{
 		Orb->next = new Power_Orb;
-		Orb->next = OrbApply(Orb->next, Type, x, y, Angle);
+		Orb->next = OrbApply(Orb->next, Type, Major, x, y, Angle);
 		Orb->next->next = OrbHead;
 		return;
 	}
-	else OrbCreate(Orb->next, Type, x, y, Angle);
+	else OrbCreate(Orb->next, Type, Major, x, y, Angle);
 }
 void OrbRemove(struct Power_Orb* NextOrb, struct Power_Orb* Orb)
 {
@@ -183,21 +176,36 @@ void OrbClear(struct Power_Orb* Orb)
 	}
 	else return;
 }
-struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, double x, double y, double Angle)
+struct Power_Orb* OrbApply(struct Power_Orb* Orb, int Type, bool Major, double x, double y, double Angle)
 {
-	switch (Type)
+	if (Major)
 	{
-	case 0:
-		Orb->power = 2, Orb->size = 25, Orb->type = 0, Orb->effect = 0, Orb->major = true;
-		break;
-	case 1:
-		Orb->power = 2, Orb->size = 25, Orb->type = 1, Orb->effect = 0, Orb->major = true;
-		break;
-	case 2:
-		Orb->power = 2, Orb->size = 25, Orb->type = 1, Orb->effect = 0, Orb->major = false;
-		break;
+		switch (Type)
+		{
+		case 0:
+			Orb->power = 2, Orb->size = 25, Orb->type = 0, Orb->effect = 0;
+			break;
+		case 1:
+			Orb->power = 1.5, Orb->size = 25, Orb->type = 1, Orb->effect = 0;
+			break;
+		}
 	}
-	Orb->x = x, Orb->y = y, Orb->angle = Angle, Orb->effect_count = 0;
+	else
+	{
+		switch (Type)
+		{
+		case 0:
+			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
+			break;
+		case 1:
+			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
+			break;
+		case 2:
+			Orb->power = 2, Orb->size = 12.5, Orb->effect = 0;
+			break;
+		}
+	}
+	Orb->x = x, Orb->y = y, Orb->type = Type, Orb->major = Major, Orb->angle = Angle, Orb->effect_count = 0;
 	Orb = OrbSpeed(Orb);
 	return Orb;
 }
@@ -206,34 +214,99 @@ void ReflectDetect(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 {
 	if (Orb->next != OrbHead)
 	{
-		if (Distancecmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, Reflector->position) && 
+		if (DistanceOvercmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, Reflector->position - 110) &&
 			AngleDetect(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, Reflector->angle) && 
+			Distancecmp(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, Reflector->position) &&
 			DistanceDetect(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly, AnglePosition(Orb->next->x + Orb->next->shellx, Orb->next->y + Orb->next->shelly) - Reflector->angle, Reflector->position, Reflector->size))
-			ReflectReflector(Orb->next, Reflector);
+			ReflectReflector(Orb, Reflector);
 		ReflectDetect(Orb->next, Reflector);
 	}
 	else return;
 }
 void ReflectReflector(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 {
-	ReflectReflectorOrb(Orb, Reflector);
-	int score;
-	if (Reflector->age > -100) score = OrbScore(Orb->speed, Mole, PressureCaculate(Mole, Temperture), 1.35, Cherenkov.cherenkov);
-	else score = OrbScore(Orb->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
-	CreateEffect(EffectHead, Orb->x, Orb->y, score);
-	Score += score;
-	if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125;
-	Reflector->age = (int)(50 / Orb->speed);
-	Reflector->position += 15.0 * (int)Orb->speed;
-	if (score > 1000) Reflector->effect = 312;
-	else if (score > 500) Reflector->effect = 212;
-	else if (score > 250) Reflector->effect = 112;
-	else Reflector->effect = 12;
+	if (Orb->next->major)
+	{
+		if (Reflector->module_charged[0])
+		{
+			if (rand() % 3 == 0)
+			{
+				if (Reflector->module_charged[4])
+				{
+					OrbCreate(OrbHead, 1 + rand() & 1, false, Orb->next->x, Orb->next->y, Reflector->angle - 0.5 + 0.25 * (1 - 2 * rand() & 1));
+					Reflector->module_charged[4] = false;
+				}
+				else OrbCreate(OrbHead, 0, false, Orb->next->x, Orb->next->y, Reflector->angle - 0.5 + 0.25 * (1 - 2 * rand() & 1));
+			}
+
+			ReflectReflectorOrb(Orb->next, Reflector);
+			int score;
+			switch (Orb->next->type)
+			{
+			case 1:
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
+				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 0.5, Cherenkov.cherenkov);
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125;
+				break;
+			case 2:
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.0125, Cherenkov.cherenkov);
+				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 0.75, Cherenkov.cherenkov);
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 100 * Orb->next->speed * Orb->next->speed;
+				break;
+			default:
+				if (Reflector->age > -100) score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1.35, Cherenkov.cherenkov);
+				else score = OrbScore(Orb->next->speed, Mole, PressureCaculate(Mole, Temperture), 1, Cherenkov.cherenkov);
+				if (Cherenkov.meter < 1000 && Cherenkov.cherenkov == false)	Cherenkov.counter += 125;
+				break;
+			}
+			CreateEffect(EffectHead, Orb->next->x, Orb->next->y, score);
+			Score += score;
+			if (score > 1000) Reflector->effect = 312;
+			else if (score > 500) Reflector->effect = 212;
+			else if (score > 250) Reflector->effect = 112;
+			else Reflector->effect = 12;
+			Reflector->age = (int)(50 / Orb->next->speed);
+			Reflector->position += 15.0 * (int)Orb->next->speed;
+		}
+	}
+	else
+	{
+		switch (Orb->next->type)
+		{
+		case 0:
+			if (Reflector->module[0] == 0 || Reflector->module_charged[0])
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					if (Reflector->module[Reflector->module_priority[i]] != 0 && Reflector->module_charged[Reflector->module_priority[i]] == false)
+					{
+						Reflector->module_charged[Reflector->module_priority[i]] = true;
+						break;
+					}
+					else if (Reflector->module[4] != 0 && i == 2) Reflector->module_charged[4] = true;
+				}
+			}
+			else Reflector->module_charged[0] = true;
+			break;
+		case 1:
+			if (Temperture < MaxTemp - 1)	Temperture++;
+			else Temperture = MaxTemp;
+			break;
+		case 2:
+			if (Temperture > 1)	Temperture--;
+			else Temperture = 0;
+			break;
+		}
+		OrbRemove(Orb->next, Orb);
+	}
 }
 struct Power_Orb* ReflectReflectorOrb(struct Power_Orb* Orb, struct Power_Reflector* Reflector)
 {
-	if (Reflector->module[1] == 1) Orb->power += 0.1;
-	else if (Reflector->module[1] == 2) Orb->power -= 0.1;
+	if (Reflector->module_charged[1])
+	{
+		if (Reflector->module[1] == 1) Orb->power += 0.1;
+		else if (Reflector->module[1] == 2) Orb->power -= 0.1;
+	}
 	ReflectOrb(Orb, Reflector->angle);
 	OrbPosition(Orb);
 	return Orb;
@@ -250,7 +323,7 @@ struct Power_Orb* ReflectOrb(struct Power_Orb* Orb, double Angle)
 	return Orb;
 }
 //--------------------------------------------------------------------------------------------------------------//
-void ReflectorPosition(struct Power_Reflector* Reflector, bool Left, bool Right, bool Up, bool Down)
+void ReflectorPosition(struct Power_Reflector* Reflector, short Left, short Right, short Up, short Down)
 {
 	if (Reflector->next != ReflectorHead)
 	{
@@ -259,21 +332,26 @@ void ReflectorPosition(struct Power_Reflector* Reflector, bool Left, bool Right,
 		else if ((Time & 1) && Reflector->next->effect > 0) Reflector->next->effect--;
 		if (Reflector->next->age > -101) Reflector->next->age--;
 		double Break = 1;
-		if (Up || Down && Reflector->next->position < 455 && Reflector->next->position > 270)
+		if ((Up & 0x8001) || (Down & 0x8001) || (Up & 0x8000) || (Down & 0x8000) && Reflector->next->position < 455 && Reflector->next->position > 270)
 		{
-			switch (Reflector->next->module[3])
+			if (Reflector->next->module_charged[2])
 			{
-			case 0:
-				if (Up) Break = 2;
-				if (Down) Break = 0.5;
-				break;
-			case 1:
-				if (Up && Reflector->next->speed < 2) Reflector->next->speed += 0.5;
-				if (Down && Reflector->next->speed > 0) Reflector->next->speed -= 0.5;
-			case 2:
-				if (Up && Reflector->next->position > 300)  Reflector->next->position -= 15;
-				if (Down && Reflector->next->position < 450) Reflector->next->position += 15;
-				break;
+				switch (Reflector->next->module[2])
+				{
+				case 1:
+					if ((Up & 0x8000) && Reflector->next->speed < 2) Reflector->next->speed += 0.5;
+					if ((Down & 0x8000) && Reflector->next->speed > 0) Reflector->next->speed -= 0.5;
+					break;
+				case 2:
+					if ((Up & 0x8001) && Reflector->next->position > 300)  Reflector->next->position -= 15;
+					if ((Down & 0x8001) && Reflector->next->position < 450) Reflector->next->position += 15;
+					break;
+				}
+			}
+			else
+			{
+				if (Up & 0x8001) Break = 2;
+				if (Down & 0x8001) Break = 0.5;
 			}
 		}
 		else
@@ -282,8 +360,8 @@ void ReflectorPosition(struct Power_Reflector* Reflector, bool Left, bool Right,
 			else if (Reflector->next->position > 500) Reflector->next->position -= (int)((Reflector->next->position * 0.2 - 75) * 0.2) * 5.0;
 			else if (Reflector->next->position > 375) Reflector->next->position -= 5;
 		}
-		if (Right) Reflector->next->angle = AngleOverflow(Reflector->next->angle - 0.006 * Reflector->next->speed / Reflector->next->position * 375 * Break);
-		if (Left) Reflector->next->angle = AngleOverflow(Reflector->next->angle + 0.006 * Reflector->next->speed / Reflector->next->position * 375 * Break);
+		if (Right & 0x8001) Reflector->next->angle = AngleOverflow(Reflector->next->angle - 0.006 * Reflector->next->speed / Reflector->next->position * 375 * Break);
+		if (Left & 0x8001) Reflector->next->angle = AngleOverflow(Reflector->next->angle + 0.006 * Reflector->next->speed / Reflector->next->position * 375 * Break);
 		ReflectorPosition(Reflector->next, Left, Right, Up, Down);
 	}
 	else return;
@@ -295,7 +373,7 @@ void ReflectorCreate(struct Power_Reflector* Reflector, int Count)
 		Reflector->next = new Power_Reflector;
 		Reflector->next = ReflectorApply(Reflector->next, Count);
 		Reflector->next->next = ReflectorHead;
-		if (Count < Reflector->module[2])  ReflectorCreate(Reflector->next, Count + 1);
+		if (Count < Reflector->module[0])  ReflectorCreate(Reflector->next, Count + 1);
 		else return;
 	}
 	else ReflectorCreate(Reflector->next, Count);
@@ -318,9 +396,17 @@ void ReflectClear(struct Power_Reflector* Reflector)
 struct Power_Reflector* ReflectorReset(struct Power_Reflector* Reflector)
 {
 	ReflectClear(ReflectorHead);
-	Reflector->module[0] = 0, Reflector->module[1] = 1, Reflector->module[2] = 2, Reflector->module[3] = 2, Reflector->module[4] = 0;
+	Reflector->module[0] = 2, Reflector->module[1] = 1, Reflector->module[2] = 2, Reflector->module[3] = 0, Reflector->module[4] = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		if (Reflector->module[i] != 0) Reflector->module_charged[i] = ChargedMod;
+		else Reflector->module_charged[i] = false;
+	}
+	Reflector->module_priority[0] = Player1Charge[0];
+	Reflector->module_priority[1] = Player1Charge[1];
+	Reflector->module_priority[2] = Player1Charge[2];
 	Reflector->position = 375, Reflector->size = 375, Reflector->speed = 1, Reflector->age = -100, Reflector->effect = 0;
-	if (Reflector->module[2] & 1) Reflector->angle = 0;
+	if (Reflector->module[0] & 1) Reflector->angle = 0;
 	else Reflector->angle = 0.25;
 	return Reflector;
 }
@@ -331,8 +417,16 @@ struct Power_Reflector* ReflectorApply(struct Power_Reflector* Reflector, int Co
 	Reflector->speed = ReflectorHead->speed;
 	Reflector->age = ReflectorHead->age;
 	Reflector->effect = ReflectorHead->effect;
-	for (int i = 0; i < 5; i++)	Reflector->module[i] = ReflectorHead->module[i];
-	Reflector->angle = ReflectorHead->angle + Count / (Reflector->module[2] + 1.0);
+	for (int i = 0; i < 5; i++)
+	{
+		Reflector->module[i] = ReflectorHead->module[i];
+		Reflector->module_charged[i] = ReflectorHead->module_charged[i];
+	}
+	if (Count == 0) Reflector->module_charged[0] = true;
+	Reflector->module_priority[0] = Player1Charge[0];
+	Reflector->module_priority[1] = Player1Charge[1];
+	Reflector->module_priority[2] = Player1Charge[2];
+	Reflector->angle = ReflectorHead->angle + Count / (Reflector->module[0] + 1.0);
 	return Reflector;
 }
 //--------------------------------------------------------------------------------------------------------------//

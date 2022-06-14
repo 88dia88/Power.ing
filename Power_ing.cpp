@@ -76,6 +76,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		GeneralReset();
 		PreTime = -25;
 		DisplayLoad();
+		DisplayColorApply();
 
 		SetTimer(hWnd, 5, 50, NULL);
 		break;
@@ -89,10 +90,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			}
 			else if (endscene)
 			{
-				PreTime = 5;
-				endscene = false;
-				Start_scene = true;
-				KillTimer(hWnd, 0);
 				SetTimer(hWnd, 5, 50, NULL);
 			}
 			else if (Start_scene == false)
@@ -102,39 +99,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		if (wParam == VK_RETURN) {
-			if (Time == -1)
+			if (GameStart)
 			{
-				SetTimer(hWnd, 3, 10, NULL);
+				if (Cherenkov.lever == 0 || Cherenkov.meter >= 875 && Cherenkov.lever < 6 && Cherenkov.cherenkov == false)
+				{
+					Cherenkov.levertrigger = true;
+					Cherenkov.lever++;
+				}
 			}
-			else if (Time == 0 && PressureCheck())
+			else if (PressureCheck())
 			{
+				Time = 0;
 				GameStart = true;
 			}
-			if (Cherenkov.meter >= 875 && Cherenkov.lever < 6 && Cherenkov.cherenkov == false)
-			{
-				Cherenkov.lever++;
-			}
+		}
+		break;
+	case WM_KEYUP:
+		if (wParam == VK_RETURN) {
+			Cherenkov.levertrigger = false;
 		}
 		break;
 	case WM_CHAR:
 		if (wParam == 'u') {				// 엔드 씬 추가부
-			PreTime == 25;
 			SetTimer(hWnd, 100, 50, NULL);
-		}
-		else if (wParam == 'p') {
-			Start_scene = true;				// 스타트씬 강제 표출 디버그용
 		}
 		break;
 	case WM_MOUSEMOVE:
 		if (Start_scene)
 		{
 			Mouse = MAKEPOINTS(lParam);
-			start_button = UIButtonSelected(-700, -135, 750, 150, Mouse);
+			start_button = (!EscMode && UIButtonSelected(-700, -135, 750, 150, Mouse));
 			module_button = UIButtonSelected(-700, 15, 750, 150, Mouse);
 			option_button = UIButtonSelected(-700, 165, 750, 150, Mouse);
-			quit_button = (!EscMode && UIButtonSelected(-700, 315, 750, 150, Mouse));
+			quit_button = UIButtonSelected(-700, 315, 750, 150, Mouse);
 		}
-		else
+		else if (Time == 0)
 		{
 			if (Button[1] != 0)
 			{
@@ -154,18 +153,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 					else Button[2] = -(int)(DistancePosition(Mouse.x - (Pibot_x - 678.5 * window_size), Mouse.y - (Pibot_x - 300 * window_size)) / 25) - 1;
 				}
 			}
-			if (keyboard == false)
+		}
+		else if (Cherenkov.levertrigger)
+		{
+			if (Cherenkov.lever == 0 || Cherenkov.meter >= 875 && Cherenkov.lever < 6 && Cherenkov.cherenkov == false)
 			{
-				Mouse = MAKEPOINTS(lParam);
-				//Reflector->angle = AnglePosition(Mouse.x - Pibot_x, Mouse.y - Pibot_y);
+				if (UIButtonSelected(-737.5, -67.5, 200, 167.5, Mouse) && Cherenkov.lever == 0) Cherenkov.lever = 1;
+				else if (UIButtonSelected(-737.5, -42.5, 200, 142.5, Mouse) && Cherenkov.lever == 1) Cherenkov.lever = 2;
+				else if (UIButtonSelected(-737.5, -15, 200, 115, Mouse) && Cherenkov.lever == 2) Cherenkov.lever = 3;
+				else if (UIButtonSelected(-737.5, 15, 200, 85, Mouse) && Cherenkov.lever == 3) Cherenkov.lever = 4;
+				else if (UIButtonSelected(-737.5, 42.5, 200, 57.5, Mouse) && Cherenkov.lever == 4) Cherenkov.lever = 5;
+				else if (UIButtonSelected(-737.5, 67.5, 200, 32.5, Mouse) && Cherenkov.lever == 5) Cherenkov.lever = 6;
 			}
+		}
+		else if (keyboard == false)
+		{
+			Mouse = MAKEPOINTS(lParam);
+			//Reflector->angle = AnglePosition(Mouse.x - Pibot_x, Mouse.y - Pibot_y);
 		}
 		break;
 	case WM_LBUTTONDOWN:
-		Mouse = MAKEPOINTS(lParam);
 		if (Start_scene)
 		{
 			if (start_button) {
+				Start_scene = false;
+				PreTime = -25;
+			}
+			else if (module_button) {
 				if (EscMode)
 				{
 					EscMode = false;
@@ -173,62 +187,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else
 				{
-					Start_scene = false;
-					PreTime = -25;
+					// 모듈 클릭시 대화상자
+					//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
 				}
-			}
-			else if (module_button) {
-				// 모듈 클릭시 대화상자
-				//DialogBoxW(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)&Dlalog_Proc);
 			}
 			else if (option_button)
 			{
-				if (EscMode)
-				{
-					GeneralReset();
-					EscMode = false;
-					PreTime = 5;
-					Start_scene = true;
-					KillTimer(hWnd, 0);
-					SetTimer(hWnd, 5, 50, NULL);
-				}
 				// 옵션 클릭시 대화상자
 			}
 			else if (quit_button)
-				PostQuitMessage(0);
+			{
+				if (EscMode)
+				{
+					SetTimer(hWnd, 5, 50, NULL);
+				}
+				else PostQuitMessage(0);
+			}
 		}
 		else if (endscene)
 		{
-			PreTime = 5;
-			endscene = false;
-			Start_scene = true;
-			KillTimer(hWnd, 0);
 			SetTimer(hWnd, 5, 50, NULL);
+		}
+		else if (Time == 0)
+		{
+			Mouse = MAKEPOINTS(lParam);
+			if (UIButtonSelected(-821.5, 260, 40, 80, Mouse)) Button[1] = 1;
+			else if (UIButtonSelected(-861.5, 260, 40, 80, Mouse)) Button[1] = -1;
+			else if (UIButtonSelected(-678.5, 260, 40, 80, Mouse)) Button[2] = 1;
+			else if (UIButtonSelected(-718.5, 260, 40, 80, Mouse)) Button[2] = -1;
+			else if (UIButtonSelected(653.5, 250, 50, 50, Mouse))
+			{
+				Button[3] = 10;
+			}
+			else if (UIButtonSelected(796.5, 250, 50, 50, Mouse))
+			{
+				Button[4] = 10;
+			}
 		}
 		else
 		{
-			if (Mouse.y >= Pibot_y + (251 * window_size) && Mouse.y <= Pibot_y + (301 * window_size))
-			{
-				if (Mouse.x >= Pibot_x + (653.5 * window_size) && Mouse.x <= Pibot_x + (703.5 * window_size)) Button[3] = 10;
-				else if (Mouse.x >= Pibot_x + (796.5 * window_size) && Mouse.x <= Pibot_x + (846.5 * window_size)) Button[4] = 10;
-			}
-			if (Time == 0 && Mouse.y >= Pibot_y + (240 * window_size) && Mouse.y <= Pibot_y + (340 * window_size))
-			{
-				if (Mouse.x > Pibot_x - (821.5 * window_size) && Mouse.x <= Pibot_x - (781.5 * window_size)) Button[1] = 1;
-				else if (Mouse.x >= Pibot_x - (861.5 * window_size) && Mouse.x < Pibot_x - (821.5 * window_size)) Button[1] = -1;
-				else if (Mouse.x > Pibot_x - (678.5 * window_size) && Mouse.x <= Pibot_x - (638.5 * window_size)) Button[2] = 1;
-				else if (Mouse.x >= Pibot_x - (718.5 * window_size) && Mouse.x < Pibot_x - (678.5 * window_size)) Button[2] = -1;
-			}
+			Mouse = MAKEPOINTS(lParam);
+			if (UIButtonSelected(-737.5, -100, 200, 200, Mouse)) Cherenkov.levertrigger = true;
+			if (UIButtonSelected(653.5, 250, 50, 50, Mouse)) Button[3] = 10;
+			else if (UIButtonSelected(796.5, 250, 50, 50, Mouse)) Button[4] = 10;
 		}
 		break;
 	case WM_LBUTTONUP:
 		Button[1] = 0;
 		Button[2] = 0;
+		Cherenkov.levertrigger = false;
 		break;
 	case WM_TIMER:
 		switch (wParam) {
 		case 0:				//GetAsyncKeyState - 키가 눌린 상태로 진행되는함수 (끊김없이)http://www.silverwolf.co.kr/cplusplus/4842
-			
 			if (EscMode)
 			{
 				if (PreTime > -5) PreTime--;
@@ -239,23 +250,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			{
 				if (Time == 0 && PreTime < 25) PreTime = 25;
 				ButtonActive();
-				ReflectorPosition(ReflectorHead, (GetAsyncKeyState(VK_LEFT) & 0x8001), (GetAsyncKeyState(VK_RIGHT) & 0x8001), (GetAsyncKeyState(VK_UP) & 0x8001 || GetAsyncKeyState(VK_SPACE) & 0x8001), (GetAsyncKeyState(VK_DOWN) & 0x8001 || GetAsyncKeyState(VK_SHIFT) & 0x8001));
+				ReflectorPosition(ReflectorHead, GetAsyncKeyState(Reflector1Left), GetAsyncKeyState(Reflector1Right), GetAsyncKeyState(Reflector1Up), GetAsyncKeyState(Reflector1Down));
 				if (GameStart)
 				{
-					if (Time == 0) OrbCreate(OrbHead, 0, 0, 0, 0.25);
-					if (Time == 0) {
-						OrbCreate(OrbHead, 2, 0, 0, 0);
-						OrbCreate(OrbHead, 2, 0, 0, 0.5);
-						OrbCreate(OrbHead, 2, 0, 0, 0.75);
-					}
+					if (Time == 25) OrbCreate(OrbHead, 0, true, 0, 0, 0.25);
 					Time++;
 					CherenkovCheck();
 					CollisionDetect(OrbHead);
-					if (ReactorEffect > 5) GameOver();
-				}
-				else
-				{
-					OrbClear(OrbHead);
+					if (ReactorEffect > 5)
+					{
+						OrbClear(OrbHead);
+						if (ReactorEffect < 15)
+						{
+							if (Time % 3 == 0)	ReactorEffect++;
+						}
+						else
+						{
+							ReactorEffect = 12;
+							Time = -1;
+							GameStart = false;
+							SetTimer(hWnd, 3, 10, NULL);
+						}
+					}
 				}
 			}
 			break;
@@ -267,10 +283,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				KillTimer(hWnd, 3);
 			}
 		case 5:				// 스타트 버튼 누르면 1초뒤에 문열리는 애니메이션
-			if (Start_scene)
+			if (endscene)
+			{
+				PreTime = 5;
+				endscene = false;
+				Start_scene = true;
+			}
+			else if (EscMode)
+			{
+				KillTimer(hWnd, 0);
+				GeneralReset();
+				EscMode = false;
+				PreTime = 5;
+				Start_scene = true;
+			}
+			else if (Start_scene)
 			{
 				if (PreTime > -25) PreTime--;
-				else if (rand() % 10 == 0) PreTime = 5;
+				else if (rand() % 50 == 0) PreTime = 5;
 			}
 			else
 			{
@@ -283,12 +313,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case 100:			// -----엔드씬 추가부
-			if (PreTime > -5) PreTime--;
+			if (endscene)
+			{
+				if (PreTime > -5) PreTime--;
+				else
+				{
+					PreTime = -25;
+					KillTimer(hWnd, 100);
+				}
+			}
 			else
 			{
 				endscene = true;
-				PreTime = -25;
-				KillTimer(hWnd, 100);
+				PreTime == 25;
+				KillTimer(hWnd, 0);
 			}
 			break;
 		}
@@ -314,7 +352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
 			if (PreTime < 0) UIMenu(start_button, module_button, option_button, quit_button, EscMode);
 		}
-		else if (endscene)
+		else if (endscene && PreTime == -25)
 		{
 			DoorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
 			UIEndMessage();
@@ -322,7 +360,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		else 
 		{
 			ReactorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
-			Reactor_EffectImg.Draw(memdc, Pibot_x - Reactor_half, Pibot_y - Reactor_half, Reactor_window, Reactor_window, Reactor_size* (ReactorEffect % 6), Reactor_size* (int)(ReactorEffect / 6), Reactor_size, Reactor_size);
+			Reactor_RailImg.Draw(memdc, Pibot_x - 782 * window_half, Pibot_y - 782 * window_half, 782 * window_size, 782 * window_size, 0, 0, 782, 782);
+
+			DisplayReflector(ReflectorHead);
+
+			if (ReactorEffect < 12) Reactor_EffectImg.Draw(memdc, Pibot_x - Reactor_half, Pibot_y - Reactor_half, Reactor_window, Reactor_window, Reactor_size* (ReactorEffect % 6), Reactor_size * (int)(ReactorEffect / 6), Reactor_size, Reactor_size);
+			else Reactor_EffectImg.Draw(memdc, Pibot_x - Reactor_half, Pibot_y - Reactor_half, Reactor_window, Reactor_window, 5000, 1000, Reactor_size, Reactor_size);
+
+			DisplayOrb(OrbHead);
 
 			Cherenkov_LeverImg.Draw(memdc, Pibot_x - (740 * window_size), Pibot_y - (100 * window_size), 200 * window_size, 200 * window_size, 200 * Cherenkov.lever, 0, 200, 200);
 
@@ -336,9 +381,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			DisplayRotatedImage(-821.5, 300, 80, 80, (Temperture - Kelvin) / (MaxTemp - Kelvin), 3);
 			DisplayRotatedImage(-678.5, 300, 80, 80, Mole / MaxPressure * Kelvin / 3 - 1.0 / 6.0, 4);
 			DisplayRotatedImage(-825, -355, 15, 190, 0, 5);
-
-			DisplayOrb(OrbHead);
-			DisplayReflector(ReflectorHead);
 
 			if (debug)	UIDebugInfo();
 			UIScore();
@@ -355,9 +397,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 					Controllroom_size_x * (PreTime % 5), Controllroom_size_y * (int)(PreTime / 5), Controllroom_size_x, Controllroom_size_y); // 3000 * (PreTime % 5), 2000 * (int)(PreTime / 5)
 			}
 		}
-
 		BitBlt(hdc, 0, 0, (int)window_size_x, (int)window_size_y, memdc, 0, 0, SRCCOPY);
-
 		DeleteObject(hBitmap);
 		DeleteDC(memdc);
 

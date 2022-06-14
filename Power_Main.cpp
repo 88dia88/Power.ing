@@ -1,7 +1,15 @@
 #include "Power_ing.h"
 
 const double window_size = 1;
-const bool debug = true, keyboard = true;
+const bool debug = true, keyboard = true, ChargedMod = false;
+int Reflector1Left = 0x25;
+int Reflector1Right = 0X27;
+int Reflector1Up = 0X26;
+int Reflector1Down = 0X28;
+
+int Player1RGB[3] = {255,255,0};
+
+int Player1Charge[3] = { 1,2,3 };
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Power.ing";

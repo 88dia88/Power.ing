@@ -7,16 +7,18 @@ const double Reactor_size = 1000, Rail_size = 375, Orb_size = 50;
 const double Controllroom_size_x = 3000, Reflector_size_x = 375;
 const double Controllroom_size_y = 2000, Reflector_size_y = 115;
 
-const double Reactor_window = Reactor_size * window_size, Rail_window = Rail_size * window_size, Orb_window = Orb_size * window_size;
-const double Controllroom_window_x = Controllroom_size_x * window_size, Reflector_window_x = Reflector_size_x * window_size;
-const double Controllroom_window_y = Controllroom_size_y * window_size, Reflector_window_y = Reflector_size_y * window_size;
+const int Reactor_window = int(Reactor_size * window_size), Rail_window = int(Rail_size * window_size), Orb_window = int(Orb_size * window_size);
+const int Controllroom_window_x = int(Controllroom_size_x * window_size), Reflector_window_x = int(Reflector_size_x * window_size);
+const int Controllroom_window_y = int(Controllroom_size_y * window_size), Reflector_window_y = int(Reflector_size_y * window_size);
 
-const double Reactor_half = Reactor_size * window_half, Rail_half = Rail_size * window_half, Orb_half = Orb_size * window_half;
-const double Controllroom_half_x = Controllroom_size_x * window_half, Reflector_half_x = Reflector_size_x * window_half;
-const double Controllroom_half_y = Controllroom_size_y * window_half, Reflector_half_y = Reflector_size_y * window_half;
+const int Reactor_half = int(Reactor_size * window_half), Rail_half = int(Rail_size * window_half), Orb_half = int(Orb_size * window_half);
+const int Controllroom_half_x = int(Controllroom_size_x * window_half), Reflector_half_x = int(Reflector_size_x * window_half);
+const int Controllroom_half_y = int(Controllroom_size_y * window_half), Reflector_half_y = int(Reflector_size_y * window_half);
 //--------------------------------------------------------------------------------------------------------------//
-CImage ReactorImg, ReflectorImg, OrbImg, PressureImg, CherenkovImg, Reactor_EffectImg, Reflector_EffectImg, Reflector_Mask_Img, Reflector_Effect_Mask_Img;
-CImage Button_PressureImg, Button_DialImg, Button_ValveImg, Button_OrbImg, Cherenkov_LeverImg, TempertureImg, DoorImg, Orb_After_Img;
+CImage ReactorImg, Reactor_EffectImg, ReflectorImg, Reflector_EffectImg, OrbImg, PressureImg, CherenkovImg;
+CImage Reactor_RailImg, Reflector_ColorImg, Reflector_LightImg, Reflector_ColorChargeImg, Reflector_LightChargeImg, Reflector_ColorOffImg, Reflector_LightOffImg;
+CImage Reflector_Mask_Img, Reflector_Effect_Mask_Img, Reflector_Color_Mask_Img, Reflector_Light_Mask_Img;
+CImage Button_PressureImg, Button_DialImg, Button_ValveImg, Button_OrbImg, Cherenkov_LeverImg, TempertureImg, DoorImg;
 CImage Pressure_Mask_Img, Cherenkov_Mask_Img, Button_Valve_Mask_Img, Button_Dial_Mask_Img, Temperture_Mask_Img;
 CImage Reflector_Module1_Img, Reflector_Module2_Img, Reflector_Module3_Img, Reflector_Module4_Img, Reflector_Module5_Img;
 CImage Reflector_Module1_Mask_Img, Reflector_Module2_Mask_Img, Reflector_Module3_Mask_Img, Reflector_Module4_Mask_Img, Reflector_Module5_Mask_Img;
@@ -78,14 +80,18 @@ void EffectPrint(struct Power_Effect* Effect)
 void DisplayLoad()
 {
 	ReactorImg.Load(TEXT("Reactor.png"));
-	ReflectorImg.Load(TEXT("Reflector.png"));
+	Reactor_EffectImg.Load(TEXT("Reactor_Effect.png"));
 	OrbImg.Load(TEXT("Orb.png"));
 	PressureImg.Load(TEXT("Pressure.png"));
 	CherenkovImg.Load(TEXT("Cherenkov.png"));
-	Reactor_EffectImg.Load(TEXT("Reactor_Effect.png"));
+
+	ReflectorImg.Load(TEXT("Reflector.png"));
 	Reflector_EffectImg.Load(TEXT("Reflector_Effect.png"));
+
 	Reflector_Mask_Img.Load(TEXT("Reflector_Mask.bmp"));
 	Reflector_Effect_Mask_Img.Load(TEXT("Reflector_Effect_Mask.bmp"));
+	Reflector_Color_Mask_Img.Load(TEXT("Reflector_Color_Mask.bmp"));
+	Reflector_Light_Mask_Img.Load(TEXT("Reflector_Light_Mask.bmp"));
 
 	Button_PressureImg.Load(TEXT("Button_Pressure.png"));
 	Button_DialImg.Load(TEXT("Button_Dial.png"));
@@ -94,7 +100,6 @@ void DisplayLoad()
 	Cherenkov_LeverImg.Load(TEXT("Cherenkov_Lever.png"));
 	TempertureImg.Load(TEXT("Temperture.png"));
 	DoorImg.Load(TEXT("Door.png"));
-	Orb_After_Img.Load(TEXT("Orb_After.png"));
 
 	Pressure_Mask_Img.Load(TEXT("Pressure_Mask.bmp"));
 	Cherenkov_Mask_Img.Load(TEXT("Cherenkov_Mask.bmp"));
@@ -164,17 +169,91 @@ void DisplayLoad()
 			ptr[2] = ((ptr[2] * ptr[3]) + 127) / 255;
 		}
 	}
-	for (int i = 0; i < Orb_After_Img.GetWidth(); i++)
+}
+
+void DisplayColorApply()
+{
+	Reactor_RailImg.Load(TEXT("Reactor_Rail.png"));
+	Reflector_ColorImg.Load(TEXT("Reflector_Color.png"));
+	Reflector_LightImg.Load(TEXT("Reflector_Color.png"));
+	Reflector_ColorChargeImg.Load(TEXT("Reflector_Color.png"));
+	Reflector_LightChargeImg.Load(TEXT("Reflector_Color.png"));
+	Reflector_ColorOffImg.Load(TEXT("Reflector_Color.png"));
+	Reflector_LightOffImg.Load(TEXT("Reflector_Color.png"));
+
+	for (int i = 0; i < Reactor_RailImg.GetWidth(); i++)
 	{
-		for (int j = 0; j < Orb_After_Img.GetHeight(); j++)
+		for (int j = 0; j < Reactor_RailImg.GetHeight(); j++)
 		{
-			BYTE* ptr = (BYTE*)Orb_After_Img.GetPixelAddress(i, j);
-			ptr[0] = ((ptr[0] * ptr[3]) + 127) / 255;
-			ptr[1] = ((ptr[1] * ptr[3]) + 127) / 255;
-			ptr[2] = ((ptr[2] * ptr[3]) + 127) / 255;
+			BYTE* ptr = (BYTE*)Reactor_RailImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 255 + Player1RGB[2]) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 255 + Player1RGB[1]) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 255 + Player1RGB[0]) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_LightImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_LightImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_LightImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 255 + Player1RGB[2]) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 255 + Player1RGB[1]) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 255 + Player1RGB[0]) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_ColorImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_ColorImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_ColorImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 255 + Player1RGB[2] * 0.9) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 255 + Player1RGB[1] * 0.9) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 255 + Player1RGB[0] * 0.9) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_LightChargeImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_LightChargeImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_LightChargeImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 26 + Player1RGB[2] * 0.1) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 26 + Player1RGB[1] * 0.1) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 26 + Player1RGB[0] * 0.1) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_ColorChargeImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_ColorChargeImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_ColorChargeImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 255 + Player1RGB[2]) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 255 + Player1RGB[1]) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 255 + Player1RGB[0]) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_LightOffImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_LightOffImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_LightOffImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 196 + Player1RGB[2] * 0.5) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 196 + Player1RGB[1] * 0.5) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 196 + Player1RGB[0] * 0.5) * ptr[3] + 127) / 255;
+		}
+	}
+	for (int i = 0; i < Reflector_ColorOffImg.GetWidth(); i++)
+	{
+		for (int j = 0; j < Reflector_ColorOffImg.GetHeight(); j++)
+		{
+			BYTE* ptr = (BYTE*)Reflector_ColorOffImg.GetPixelAddress(i, j);
+			ptr[0] = ((ptr[0] - 196 + Player1RGB[2] * 0.45) * ptr[3] + 127) / 255;
+			ptr[1] = ((ptr[1] - 196 + Player1RGB[1] * 0.45) * ptr[3] + 127) / 255;
+			ptr[2] = ((ptr[2] - 196 + Player1RGB[0] * 0.45) * ptr[3] + 127) / 255;
 		}
 	}
 }
+
+
 void Display()
 {
 	memdc = CreateCompatibleDC(hdc);
@@ -217,16 +296,11 @@ void DisplayOrb(struct Power_Orb* Orb)
 {
 	if (Orb->next != OrbHead)
 	{
-		for (int i = Orb->next->effect_count; i > 0; i--) Orb_After_Img.AlphaBlend(memdc, (int)(Pibot_x + Orb->next->afterx[i] * window_size - Orb_half), (int)(Pibot_y + Orb->next->aftery[i] * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 0, 0, Orb_size, Orb_size, 2 * (Orb->next->effect_count - i));
-		switch (Orb->next->type)
-		{
-		case 0:
-			OrbImg.Draw(memdc, (int)(Pibot_x + Orb->next->x * window_size - Orb_half), (int)(Pibot_y + Orb->next->y * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 0, 0, Orb_size, Orb_size);
-			break;
-		case 1:
-			OrbImg.Draw(memdc, (int)(Pibot_x + Orb->next->x * window_size - Orb_half), (int)(Pibot_y + Orb->next->y * window_size - Orb_half), (int)Orb_window, (int)Orb_window, 0, 0, Orb_size, Orb_size);
-			break;
-		}		
+		for (int i = Orb->next->effect_count; i > 0; i--) OrbImg.AlphaBlend(memdc, int(Pibot_x + (Orb->next->afterx[i] - Orb->next->size) * window_size), int(Pibot_y + (Orb->next->aftery[i] - Orb->next->size) * window_size), int(Orb->next->size * 2 * window_size), int(Orb->next->size * 2 * window_size), Orb_size * (4 * Cherenkov.cherenkov + 10 * Orb->next->major + 2), Orb_size * Orb->next->type, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) OrbImg.AlphaBlend(memdc, int(Pibot_x + (Orb->next->afterx[i] - Orb->next->size) * window_size), int(Pibot_y + (Orb->next->aftery[i] - Orb->next->size) * window_size), int(Orb->next->size * 2 * window_size), int(Orb->next->size * 2 * window_size), Orb_size * (4 * Cherenkov.cherenkov + 10 * Orb->next->major + 3), Orb_size * Orb->next->type, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) OrbImg.AlphaBlend(memdc, int(Pibot_x + (Orb->next->afterx[i] - Orb->next->size) * window_size), int(Pibot_y + (Orb->next->aftery[i] - Orb->next->size) * window_size), int(Orb->next->size * 2 * window_size), int(Orb->next->size * 2 * window_size), Orb_size * (4 * Cherenkov.cherenkov + 10 * Orb->next->major + 4), Orb_size * Orb->next->type, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		for (int i = Orb->next->effect_count; i > 0; i--) OrbImg.AlphaBlend(memdc, int(Pibot_x + (Orb->next->afterx[i] - Orb->next->size) * window_size), int(Pibot_y + (Orb->next->aftery[i] - Orb->next->size) * window_size), int(Orb->next->size * 2 * window_size), int(Orb->next->size * 2 * window_size), Orb_size * (4 * Cherenkov.cherenkov + 10 * Orb->next->major + 5), Orb_size * Orb->next->type, Orb_size, Orb_size, 1.125 * (Orb->next->effect_count - i));
+		OrbImg.Draw(memdc, int(Pibot_x + (Orb->next->x - Orb->next->size) * window_size), int(Pibot_y + (Orb->next->y - Orb->next->size) * window_size), int(Orb->next->size * 2 * window_size), int(Orb->next->size * 2 * window_size), Orb_size * (Cherenkov.cherenkov + 10 * Orb->next->major), Orb_size * Orb->next->type, Orb_size, Orb_size);
 		DisplayOrb(Orb->next);
 	}
 	else return;
@@ -240,14 +314,30 @@ void DisplayReflector(struct Power_Reflector* Reflector)
 		ReflectorPaint2(Reflector->next, 0),
 		ReflectorPaint3(Reflector->next, 0)
 		};
-		if (Reflector->next->age < -100) ReflectorImg.PlgBlt(memdc, Reflector_Point, 375, 0, 375, 115, Reflector_Mask_Img, 0, 0);
-		else if (Reflector->next->age > 0) ReflectorImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Mask_Img, 0, 0);
-		else ReflectorImg.PlgBlt(memdc, Reflector_Point, 750, 0, 375, 115, Reflector_Mask_Img, 0, 0);
-		Reflector_Module1_Img.PlgBlt(memdc, Reflector_Point, 375, (115 * (Reflector->next->module[0] - 1)), 375, 115, Reflector_Module1_Mask_Img, 375, (115 * (Reflector->next->module[0] - 1)));
-		Reflector_Module2_Img.PlgBlt(memdc, Reflector_Point, 375, (115 * (Reflector->next->module[1] - 1)), 375, 115, Reflector_Module2_Mask_Img, 375, (115 * (Reflector->next->module[1] - 1)));
-		Reflector_Module3_Img.PlgBlt(memdc, Reflector_Point, 375, (115 * (Reflector->next->module[2] - 1)), 375, 115, Reflector_Module3_Mask_Img, 375, (115 * (Reflector->next->module[2] - 1)));
-		Reflector_Module4_Img.PlgBlt(memdc, Reflector_Point, 375, (115 * (Reflector->next->module[3] - 1)), 375, 115, Reflector_Module4_Mask_Img, 375, (115 * (Reflector->next->module[3] - 1)));
-		Reflector_Module5_Img.PlgBlt(memdc, Reflector_Point, 375, (115 * (Reflector->next->module[4] - 1)), 375, 115, Reflector_Module5_Mask_Img, 375, (115 * (Reflector->next->module[4] - 1)));
+		ReflectorImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Mask_Img, 0, 0);
+
+		if (Reflector->next->age < -100)
+		{
+			Reflector_ColorImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Color_Mask_Img, 0, 0);
+			Reflector_LightImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Light_Mask_Img, 0, 0);
+		}
+		else if (Reflector->next->age > 0)
+		{
+			Reflector_ColorOffImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Color_Mask_Img, 0, 0);
+			Reflector_LightOffImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Light_Mask_Img, 0, 0);
+		}
+		else
+		{
+			Reflector_ColorChargeImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Color_Mask_Img, 0, 0);
+			Reflector_LightChargeImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Light_Mask_Img, 0, 0);
+		}
+
+		Reflector_Module1_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[0], (115 * (Reflector->next->module[0] - 1)), 375, 115, Reflector_Module1_Mask_Img, 375 * Reflector->next->module_charged[0], (115 * (Reflector->next->module[0] - 1)));
+		Reflector_Module2_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[1], (115 * (Reflector->next->module[1] - 1)), 375, 115, Reflector_Module2_Mask_Img, 375 * Reflector->next->module_charged[1], (115 * (Reflector->next->module[1] - 1)));
+		Reflector_Module3_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[2], (115 * (Reflector->next->module[2] - 1)), 375, 115, Reflector_Module3_Mask_Img, 375 * Reflector->next->module_charged[2], (115 * (Reflector->next->module[2] - 1)));
+		Reflector_Module4_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[3], (115 * (Reflector->next->module[3] - 1)), 375, 115, Reflector_Module4_Mask_Img, 375 * Reflector->next->module_charged[3], (115 * (Reflector->next->module[3] - 1)));
+		Reflector_Module5_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[4], (115 * (Reflector->next->module[4] - 1)), 375, 115, Reflector_Module5_Mask_Img, 375 * Reflector->next->module_charged[4], (115 * (Reflector->next->module[4] - 1)));
+		
 		if (Reflector->next->effect > 0)
 		{
 			POINT Reflector_Effect_Point[3] = {
@@ -309,9 +399,9 @@ void UIMenu(bool Start, bool Module, bool Option, bool Quit, bool Esc)
 	oldFont = (HFONT)SelectObject(memdc, hFont);
 	if (Esc)
 	{
-		UIButton(-650, -125, 255, 255, 255, 0, 255, 255, Start, L"Resume");
-		UIButton(-650, 25, 0, 255, 0, 0, 255, 255, Module, L"Options");
-		UIButton(-650, 175, 255, 255, 0, 255, 0, 0, Option, L"Quit To Main Menu");
+		UIButton(-650, 25, 255, 255, 255, 0, 255, 255, Module, L"Resume");
+		UIButton(-650, 175, 0, 255, 0, 0, 255, 255, Option, L"Options");
+		UIButton(-650, 325, 255, 255, 0, 255, 0, 0, Quit, L"Quit To Main Menu");
 	}
 	else
 	{

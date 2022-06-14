@@ -3,9 +3,9 @@
 double window_half = window_size * 0.5;
 double window_size_x = 2000 * window_size, window_size_y = 1125 * window_size, Pibot_x = window_size_x * 0.5, Pibot_y = window_size_y * 0.5;
 
-double Reactor_size = 1000, Rail_size = 375, Orb_size = 50;
-double Controllroom_size_x = 3000, Reflector_size_x = 375;
-double Controllroom_size_y = 2000, Reflector_size_y = 115;
+const int Reactor_size = 1000, Rail_size = 375, Orb_size = 50;
+const int Controllroom_size_x = 3000, Reflector_size_x = 375;
+const int Controllroom_size_y = 2000, Reflector_size_y = 115;
 
 int Reactor_window = int(Reactor_size * window_size), Rail_window = int(Rail_size * window_size), Orb_window = int(Orb_size * window_size);
 int Controllroom_window_x = int(Controllroom_size_x * window_size), Reflector_window_x = int(Reflector_size_x * window_size);
@@ -20,7 +20,7 @@ CImage Reactor_RailImg, Reflector_ColorImg, Reflector_LightImg, Reflector_ColorC
 CImage Reflector_Mask_Img, Reflector_Effect_Mask_Img, Reflector_Color_Mask_Img, Reflector_Light_Mask_Img;
 CImage Button_PressureImg, Button_DialImg, Button_ValveImg, Button_OrbImg, Cherenkov_LeverImg, TempertureImg, DoorImg;
 CImage Pressure_Mask_Img, Cherenkov_Mask_Img, Button_Valve_Mask_Img, Button_Dial_Mask_Img, Temperture_Mask_Img;
-CImage Reflector_Module1_Img, Reflector_Module2_Img, Reflector_Module3_Img, Reflector_Module4_Img, Reflector_Module5_Img;
+CImage Reflector_Module1_Img, Reflector_Module2_Img, Reflector_Module3_Img, Reflector_Module4_Img, Reflector_Module5_Img, Reflector_Module_Img, Reflector_Module_Mask_Img;
 CImage Reflector_Module1_Mask_Img, Reflector_Module2_Mask_Img, Reflector_Module3_Mask_Img, Reflector_Module4_Mask_Img, Reflector_Module5_Mask_Img;
 struct Power_Effect* EffectHead = (Power_Effect*)malloc(sizeof(struct Power_Effect));
 //--------------------------------------------------------------------------------------------------------------//
@@ -79,45 +79,36 @@ void EffectPrint(struct Power_Effect* Effect)
 //--------------------------------------------------------------------------------------------------------------//
 void DisplayLoad()
 {
-	ReactorImg.Load(TEXT("Reactor.png"));
-	Reactor_EffectImg.Load(TEXT("Reactor_Effect.png"));
-	OrbImg.Load(TEXT("Orb.png"));
-	PressureImg.Load(TEXT("Pressure.png"));
-	CherenkovImg.Load(TEXT("Cherenkov.png"));
+	ReactorImg.Load(TEXT("Img\\Reactor.png"));
+	Reactor_EffectImg.Load(TEXT("Img\\Reactor_Effect.png"));
+	OrbImg.Load(TEXT("Img\\Orb.png"));
+	PressureImg.Load(TEXT("Img\\Pressure.png"));
+	CherenkovImg.Load(TEXT("Img\\Cherenkov.png"));
 
-	ReflectorImg.Load(TEXT("Reflector.png"));
-	Reflector_EffectImg.Load(TEXT("Reflector_Effect.png"));
+	ReflectorImg.Load(TEXT("Img\\Reflector.png"));
+	Reflector_EffectImg.Load(TEXT("Img\\Reflector_Effect.png"));
 
-	Reflector_Mask_Img.Load(TEXT("Reflector_Mask.bmp"));
-	Reflector_Effect_Mask_Img.Load(TEXT("Reflector_Effect_Mask.bmp"));
-	Reflector_Color_Mask_Img.Load(TEXT("Reflector_Color_Mask.bmp"));
-	Reflector_Light_Mask_Img.Load(TEXT("Reflector_Light_Mask.bmp"));
+	Reflector_Mask_Img.Load(TEXT("Img\\Reflector_Mask.bmp"));
+	Reflector_Effect_Mask_Img.Load(TEXT("Img\\Reflector_Effect_Mask.bmp"));
+	Reflector_Color_Mask_Img.Load(TEXT("Img\\Reflector_Color_Mask.bmp"));
+	Reflector_Light_Mask_Img.Load(TEXT("Img\\Reflector_Light_Mask.bmp"));
 
-	Button_PressureImg.Load(TEXT("Button_Pressure.png"));
-	Button_DialImg.Load(TEXT("Button_Dial.png"));
-	Button_ValveImg.Load(TEXT("Button_Valve.png"));
-	Button_OrbImg.Load(TEXT("Button_Orb.png"));
-	Cherenkov_LeverImg.Load(TEXT("Cherenkov_Lever.png"));
-	TempertureImg.Load(TEXT("Temperture.png"));
-	DoorImg.Load(TEXT("Door.png"));
+	Button_PressureImg.Load(TEXT("Img\\Button_Pressure.png"));
+	Button_DialImg.Load(TEXT("Img\\Button_Dial.png"));
+	Button_ValveImg.Load(TEXT("Img\\Button_Valve.png"));
+	Button_OrbImg.Load(TEXT("Img\\Button_Orb.png"));
+	Cherenkov_LeverImg.Load(TEXT("Img\\Cherenkov_Lever.png"));
+	TempertureImg.Load(TEXT("Img\\Temperture.png"));
+	DoorImg.Load(TEXT("Img\\Door.png"));
 
-	Pressure_Mask_Img.Load(TEXT("Pressure_Mask.bmp"));
-	Cherenkov_Mask_Img.Load(TEXT("Cherenkov_Mask.bmp"));
-	Button_Dial_Mask_Img.Load(TEXT("Button_Dial_Mask.bmp"));
-	Button_Valve_Mask_Img.Load(TEXT("Button_Valve_Mask.bmp"));
-	Temperture_Mask_Img.Load(TEXT("Temperture_Mask.bmp"));
+	Pressure_Mask_Img.Load(TEXT("Img\\Pressure_Mask.bmp"));
+	Cherenkov_Mask_Img.Load(TEXT("Img\\Cherenkov_Mask.bmp"));
+	Button_Dial_Mask_Img.Load(TEXT("Img\\Button_Dial_Mask.bmp"));
+	Button_Valve_Mask_Img.Load(TEXT("Img\\Button_Valve_Mask.bmp"));
+	Temperture_Mask_Img.Load(TEXT("Img\\Temperture_Mask.bmp"));
 
-	Reflector_Module1_Img.Load(TEXT("Reflector_Module1.png"));
-	Reflector_Module2_Img.Load(TEXT("Reflector_Module2.png"));
-	Reflector_Module3_Img.Load(TEXT("Reflector_Module3.png"));
-	Reflector_Module4_Img.Load(TEXT("Reflector_Module4.png"));
-	Reflector_Module5_Img.Load(TEXT("Reflector_Module5.png"));
-
-	Reflector_Module1_Mask_Img.Load(TEXT("Reflector_Module1_Mask.bmp"));
-	Reflector_Module2_Mask_Img.Load(TEXT("Reflector_Module2_Mask.bmp"));
-	Reflector_Module3_Mask_Img.Load(TEXT("Reflector_Module3_Mask.bmp"));
-	Reflector_Module4_Mask_Img.Load(TEXT("Reflector_Module4_Mask.bmp"));
-	Reflector_Module5_Mask_Img.Load(TEXT("Reflector_Module5_Mask.bmp"));
+	Reflector_Module_Img.Load(TEXT("Img\\Reflector_Module.png"));
+	Reflector_Module_Mask_Img.Load(TEXT("Img\\Reflector_Module_Mask.bmp"));
 
 	for (int i = 0; i < Reactor_EffectImg.GetWidth(); i++)
 	{
@@ -173,11 +164,7 @@ void DisplayLoad()
 void DisplayWindow()
 {
 	window_half = window_size * 0.5;
-	window_size_x = 2000 * window_size, window_size_y = 1050 * window_size, Pibot_x = window_size_x * 0.5, Pibot_y = window_size_y * 0.5;
-
-	Reactor_size = 1000, Rail_size = 375, Orb_size = 50;
-	Controllroom_size_x = 3000, Reflector_size_x = 375;
-	Controllroom_size_y = 2000, Reflector_size_y = 115;
+	window_size_x = 2000 * window_size, window_size_y = 1125 * window_size, Pibot_x = window_size_x * 0.5, Pibot_y = window_size_y * 0.5;
 
 	Reactor_window = int(Reactor_size * window_size), Rail_window = int(Rail_size * window_size), Orb_window = int(Orb_size * window_size);
 	Controllroom_window_x = int(Controllroom_size_x * window_size), Reflector_window_x = int(Reflector_size_x * window_size);
@@ -189,13 +176,13 @@ void DisplayWindow()
 }
 void DisplayColorApply()
 {
-	Reactor_RailImg.Load(TEXT("Reactor_Rail.png"));
-	Reflector_ColorImg.Load(TEXT("Reflector_Color.png"));
-	Reflector_LightImg.Load(TEXT("Reflector_Color.png"));
-	Reflector_ColorChargeImg.Load(TEXT("Reflector_Color.png"));
-	Reflector_LightChargeImg.Load(TEXT("Reflector_Color.png"));
-	Reflector_ColorOffImg.Load(TEXT("Reflector_Color.png"));
-	Reflector_LightOffImg.Load(TEXT("Reflector_Color.png"));
+	Reactor_RailImg.Load(TEXT("Img\\Reactor_Rail.png"));
+	Reflector_ColorImg.Load(TEXT("Img\\Reflector_Color.png"));
+	Reflector_LightImg.Load(TEXT("Img\\Reflector_Color.png"));
+	Reflector_ColorChargeImg.Load(TEXT("Img\\Reflector_Color.png"));
+	Reflector_LightChargeImg.Load(TEXT("Img\\Reflector_Color.png"));
+	Reflector_ColorOffImg.Load(TEXT("Img\\Reflector_Color.png"));
+	Reflector_LightOffImg.Load(TEXT("Img\\Reflector_Color.png"));
 
 	for (int i = 0; i < Reactor_RailImg.GetWidth(); i++)
 	{
@@ -269,44 +256,6 @@ void DisplayColorApply()
 	}
 }
 
-
-void Display()
-{
-	memdc = CreateCompatibleDC(hdc);
-	hBitmap = CreateCompatibleBitmap(hdc, (int)window_size_x, (int)window_size_y);
-
-	SelectObject(memdc, hBitmap);
-	SetStretchBltMode(memdc, COLORONCOLOR);
-
-	ReactorImg.Draw(memdc, Pibot_x - Controllroom_half_x, Pibot_y - Controllroom_half_y, Controllroom_window_x, Controllroom_window_y, 0, 0, Controllroom_size_x, Controllroom_size_y);
-	Reactor_EffectImg.Draw(memdc, Pibot_x - Reactor_half, Pibot_y - Reactor_half, Reactor_window, Reactor_window, Reactor_size * (ReactorEffect % 6), Reactor_size * (int)(ReactorEffect / 6), Reactor_size, Reactor_size);
-
-	Cherenkov_LeverImg.Draw(memdc, Pibot_x - (740 * window_size), Pibot_y - (100 * window_size), 200 * window_size, 200 * window_size, 200 * Cherenkov.lever, 0, 200, 200);
-
-	Button_PressureImg.Draw(memdc, Pibot_x - (861.5 * window_size), Pibot_y + (260 * window_size), 80 * window_size, 80 * window_size, 80 * (PNcmp(Button[1]) + 1), 0, 80, 80);
-	Button_PressureImg.Draw(memdc, Pibot_x - (718.5 * window_size), Pibot_y + (260 * window_size), 80 * window_size, 80 * window_size, 80 * (PNcmp(Button[2]) + 1), 0, 80, 80);
-	Button_OrbImg.Draw(memdc, Pibot_x + (653.5 * window_size), Pibot_y + (251 * window_size), 50 * window_size, 50 * window_size, 50 * (int)(Button[3] / 3), 0, 50, 50);
-	Button_OrbImg.Draw(memdc, Pibot_x + (796.5 * window_size), Pibot_y + (251 * window_size), 50 * window_size, 50 * window_size, 50 * (int)(Button[4] / 3), 50, 50, 50);
-
-	DisplayRotatedImage(-860, 0, 20, 110, Cherenkov.meter / 1500.0 - 1.0 / 3.0, 1);
-	DisplayRotatedImage(-700, -405, 14, 80, PressureCaculate(Mole, Temperture), 2);
-	DisplayRotatedImage(-821.5, 300, 80, 80, (Temperture - Kelvin) / (MaxTemp - Kelvin), 3);
-	DisplayRotatedImage(-678.5, 300, 80, 80, Mole / MaxPressure * Kelvin / 3 - 1.0 / 6.0, 4);
-	DisplayRotatedImage(-825, -355, 15, 190, 0, 5);
-
-	DisplayOrb(OrbHead);
-	DisplayReflector(ReflectorHead);
-
-	SetBkMode(memdc, TRANSPARENT);
-	UIScore();
-	EffectPrint(EffectHead);
-	if (debug == true)	UIDebugInfo();
-
-	BitBlt(hdc, 0, 0, (int)window_size_x, (int)window_size_y, memdc, 0, 0, SRCCOPY);
-
-	DeleteObject(hBitmap);
-	DeleteDC(memdc);
-}
 //--------------------------------------------------------------------------------------------------------------//
 void DisplayOrb(struct Power_Orb* Orb)
 {
@@ -348,12 +297,12 @@ void DisplayReflector(struct Power_Reflector* Reflector)
 			Reflector_LightChargeImg.PlgBlt(memdc, Reflector_Point, 0, 0, 375, 115, Reflector_Light_Mask_Img, 0, 0);
 		}
 
-		Reflector_Module1_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[0], (115 * (Reflector->next->module[0] - 1)), 375, 115, Reflector_Module1_Mask_Img, 375 * Reflector->next->module_charged[0], (115 * (Reflector->next->module[0] - 1)));
-		Reflector_Module2_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[1], (115 * (Reflector->next->module[1] - 1)), 375, 115, Reflector_Module2_Mask_Img, 375 * Reflector->next->module_charged[1], (115 * (Reflector->next->module[1] - 1)));
-		Reflector_Module3_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[2], (115 * (Reflector->next->module[2] - 1)), 375, 115, Reflector_Module3_Mask_Img, 375 * Reflector->next->module_charged[2], (115 * (Reflector->next->module[2] - 1)));
-		Reflector_Module4_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[3], (115 * (Reflector->next->module[3] - 1)), 375, 115, Reflector_Module4_Mask_Img, 375 * Reflector->next->module_charged[3], (115 * (Reflector->next->module[3] - 1)));
-		Reflector_Module5_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[4], (115 * (Reflector->next->module[4] - 1)), 375, 115, Reflector_Module5_Mask_Img, 375 * Reflector->next->module_charged[4], (115 * (Reflector->next->module[4] - 1)));
-		
+		Reflector_Module_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[4] + 750 * 4, (115 * (Reflector->next->module[4] - 1)), 375, 115, Reflector_Module_Mask_Img, 375 * Reflector->next->module_charged[4] + 750 * 4, (115 * (Reflector->next->module[4] - 1)));
+		for (int i = 0; i < 3; i++)
+		{
+			Reflector_Module_Img.PlgBlt(memdc, Reflector_Point, 375 * Reflector->next->module_charged[i] + 750 * i, (115 * (Reflector->next->module[i] - 1)), 375, 115, Reflector_Module_Mask_Img, 375 * Reflector->next->module_charged[i] + 750 * i, (115 * (Reflector->next->module[i] - 1)));
+		}
+
 		if (Reflector->next->effect > 0)
 		{
 			POINT Reflector_Effect_Point[3] = {
